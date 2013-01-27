@@ -5,7 +5,8 @@
     "three": "0.55.0"
   },
   "devDependencies": {
-    "browservefy": "0.0.2"
+    "browservefy": "0.0.2",
+    "raf": "0.0.1"
   },
   "scripts": {
     "start": "echo \"open localhost:8080\" && ./node_modules/browservefy/bin/browservefy index.js 8080 -- -d --ignore zlib"

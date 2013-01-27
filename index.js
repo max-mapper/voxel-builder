@@ -1,4 +1,5 @@
 var THREE = window.three = require('three')
+var raf = require('raf')
 var container
 var output = document.querySelector('#output')
 var camera, scene, renderer, brush
@@ -409,7 +410,7 @@ function save() {
 }
 
 function animate() {
-	requestAnimationFrame( animate )
+  raf(window).on('data', animate)
 	render()
 }
 
