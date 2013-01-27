@@ -9,6 +9,7 @@ var radius = 1600, theta = 90, phi = 60
 target = new THREE.Vector3( 0, 200, 0 )
 var color = 0
 var colors = [ 0xDF1F1F, 0xDFAF1F, 0x80DF1F, 0x1FDF50, 0x1FDFDF, 0x1F4FDF, 0x7F1FDF, 0xDF1FAF, 0xEFEFEF, 0x303030 ]
+var cube = new THREE.CubeGeometry( 50, 50, 50 )
 
 init()
 animate()
@@ -60,7 +61,6 @@ function init() {
 
   // Brush
   
-  var cube = new THREE.CubeGeometry( 50, 50, 50 )
 	var cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true, wireframeLinewidth: 2 })
 	brush = new THREE.Mesh( cube, cubeMaterial)
 	brush.position.y = 2000
@@ -100,6 +100,8 @@ function init() {
 	//
 
 	window.addEventListener( 'resize', onWindowResize, false )
+	
+	if ( window.location.hash ) buildFromHash()
 
 }
 
@@ -201,9 +203,8 @@ function onDocumentMouseUp( event ) {
 
 			} else {
 
-      	var geometry = new THREE.CubeGeometry( 50, 50, 50 )
       	var newMaterial = new THREE.MeshBasicMaterial({ color: colors[color], wireframe: true })
-      	var voxel = new THREE.Mesh( geometry, newMaterial )
+      	var voxel = new THREE.Mesh( cube, newMaterial )
       	voxel.position.copy(brush.position)
       	voxel.matrixAutoUpdate = false
       	voxel.updateMatrix()
@@ -213,7 +214,8 @@ function onDocumentMouseUp( event ) {
 		}
 
 	}
-
+	
+	updateHash()
 	render()
 	interact()
 }
@@ -237,6 +239,141 @@ function onDocumentKeyUp( event ) {
 		case 17: isCtrlDown = false; break
 
 	}
+}
+
+
+function buildFromHash() {
+
+	var hash = window.location.hash.substr( 1 ),
+	version = hash.substr( 0, 2 );
+
+	if ( version == "A/" ) {
+
+		var current = { x: 0, y: 0, z: 0, c: 0 }
+		var data = decode( hash.substr( 2 ) );
+		var i = 0, l = data.length;
+
+		while ( i < l ) {
+
+			var code = data[ i ++ ].toString( 2 );
+
+			if ( code.charAt( 1 ) == "1" ) current.x += data[ i ++ ] - 32;
+			if ( code.charAt( 2 ) == "1" ) current.y += data[ i ++ ] - 32;
+			if ( code.charAt( 3 ) == "1" ) current.z += data[ i ++ ] - 32;
+			if ( code.charAt( 4 ) == "1" ) current.c += data[ i ++ ] - 32;
+			if ( code.charAt( 0 ) == "1" ) {
+				var voxel = new THREE.Mesh( cube, new THREE.MeshBasicMaterial({ color: colors[current.c], wireframe: true }));
+				voxel.position.x = current.x * 50 + 25;
+				voxel.position.y = current.y * 50 + 25;
+				voxel.position.z = current.z * 50 + 25;
+				voxel.overdraw = true;
+				scene.add( voxel );
+
+			}
+		}
+
+	} else {
+
+		var data = decode( hash );
+
+		for ( var i = 0; i < data.length; i += 4 ) {
+      
+			var voxel = new THREE.Mesh( cube, new THREE.MeshBasicMaterial({ color: colors[ data[ i + 3 ] ], wireframe: true }) );
+			voxel.position.x = ( data[ i ] - 20 ) * 25;
+			voxel.position.y = ( data[ i + 1 ] + 1 ) * 25;
+			voxel.position.z = ( data[ i + 2 ] - 20 ) * 25;
+			voxel.overdraw = true;
+			scene.add( voxel );
+
+		}
+
+	}
+
+	updateHash();
+
+}
+
+function updateHash() {
+
+	var data = [],
+	current = { x: 0, y: 0, z: 0, c: 0 },
+	last = { x: 0, y: 0, z: 0, c: 0 },
+	code;
+	for ( var i in scene.children ) {
+
+		object = scene.children[ i ];
+
+		if ( object instanceof THREE.Mesh && object !== plane && object !== brush ) {
+
+			current.x = ( object.position.x - 25 ) / 50;
+			current.y = ( object.position.y - 25 ) / 50;
+			current.z = ( object.position.z - 25 ) / 50;
+			window.pizza = object.material
+			current.c = colors.indexOf( object.material.color.getHex() & 0xffffff );
+
+			code = 0;
+
+			if ( current.x != last.x ) code += 1000;
+			if ( current.y != last.y ) code += 100;
+			if ( current.z != last.z ) code += 10;
+			if ( current.c != last.c ) code += 1;
+
+			code += 10000;
+
+			data.push( parseInt( code, 2 ) );
+
+			if ( current.x != last.x ) {
+
+				data.push( current.x - last.x + 32 );
+				last.x = current.x;
+
+			}
+
+			if ( current.y != last.y ) {
+
+				data.push( current.y - last.y + 32 );
+				last.y = current.y;
+
+			}
+
+			if ( current.z != last.z ) {
+
+				data.push( current.z - last.z + 32 );
+				last.z = current.z;
+
+			}
+
+			if ( current.c != last.c ) {
+
+				data.push( current.c - last.c + 32 );
+				last.c = current.c;
+
+			}
+
+		}
+
+	}
+
+	data = encode( data );
+	window.location.hash = "A/" + data;
+}
+
+// https://gist.github.com/665235
+
+function decode( string ) {
+
+	var output = [];
+	string.split('').forEach( function ( v ) { output.push( "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".indexOf( v ) ); } );
+	return output;
+
+}
+
+function encode( array ) {
+
+	var output = "";
+	array.forEach( function ( v ) { output += "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".charAt( v ); } );
+	return output;
+
 }
 
 function save() {
