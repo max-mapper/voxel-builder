@@ -1,5 +1,6 @@
 var THREE = window.three = require('three')
 var container
+var output = document.querySelector('#output')
 var camera, scene, renderer, brush
 var projector, plane
 var mouse2D, mouse3D, raycaster, objectHovered
@@ -91,9 +92,9 @@ function init() {
 
 	container.appendChild(renderer.domElement)
 
-	document.addEventListener( 'mousemove', onDocumentMouseMove, false )
-	document.addEventListener( 'mousedown', onDocumentMouseDown, false )
-	document.addEventListener( 'mouseup', onDocumentMouseUp, false )
+	renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false )
+	renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false )
+	renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false )
 	document.addEventListener( 'keydown', onDocumentKeyDown, false )
 	document.addEventListener( 'keyup', onDocumentKeyUp, false )
 
@@ -295,22 +296,22 @@ function buildFromHash() {
 
 function updateHash() {
 
-	var data = [],
-	current = { x: 0, y: 0, z: 0, c: 0 },
-	last = { x: 0, y: 0, z: 0, c: 0 },
-	code;
+	var data = [], voxels = [], code
+	var current = { x: 0, y: 0, z: 0, c: 0 }
+	var last = { x: 0, y: 0, z: 0, c: 0 }
 	for ( var i in scene.children ) {
 
-		object = scene.children[ i ];
+		var object = scene.children[ i ]
 
 		if ( object instanceof THREE.Mesh && object !== plane && object !== brush ) {
 
 			current.x = ( object.position.x - 25 ) / 50;
 			current.y = ( object.position.y - 25 ) / 50;
 			current.z = ( object.position.z - 25 ) / 50;
-			window.pizza = object.material
-			current.c = colors.indexOf( object.material.color.getHex() & 0xffffff );
 
+			current.c = colors.indexOf( object.material.color.getHex() & 0xffffff );
+      voxels.push({x: current.x, y: current.y + 1, z: current.z , c: current.c + 1})
+      
 			code = 0;
 
 			if ( current.x != last.x ) code += 1000;
@@ -353,9 +354,34 @@ function updateHash() {
 		}
 
 	}
-
+  if (voxels.length > 0) updateFunction(voxels)
 	data = encode( data );
 	window.location.hash = "A/" + data;
+}
+
+function updateFunction(voxels) {
+  var dimensions = getDimensions(voxels)
+  voxels = voxels.map(function(v) { return [v.x, v.y, v.z, v.c]})
+  var funcString = "var voxels = " + JSON.stringify(voxels) + "<br>"
+  funcString += 'var dimensions = ' + JSON.stringify(dimensions) + '<br>'
+  funcString += 'var size = game.cubeSize<br>'
+  funcString += 'voxels.map(function(voxel) {<br>' +
+    '&nbsp;&nbsp;game.setBlock({x: position.x + voxel[0] * size, y: position.y + voxel[1] * size, z: position.z + voxel[2] * size}, voxel[3])<br>' +
+  '})'
+  output.innerHTML = funcString
+}
+
+function getDimensions(voxels) {
+  var low = [0, 0, 0], high = [0, 0, 0]
+  voxels.map(function(voxel) {
+    if (voxel.x < low[0]) low[0] = voxel.x
+    if (voxel.x > high[0]) high[0] = voxel.x
+    if (voxel.y < low[1]) low[1] = voxel.y
+    if (voxel.y > high[1]) high[1] = voxel.y
+    if (voxel.z < low[2]) low[2] = voxel.z
+    if (voxel.z > high[2]) high[2] = voxel.z
+  })
+  return [ high[0]-low[0], high[1]-low[1], high[2]-low[2] ]
 }
 
 // https://gist.github.com/665235
