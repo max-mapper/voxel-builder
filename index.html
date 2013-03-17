@@ -1,26 +1,83 @@
 <!DOCTYPE HTML>
 <html lang="en">
-	<head>
-		<title>Voxels</title>
-		<meta charset="utf-8">
-		<style type="text/css">
-			body {
-				font-family: Monospace;
-				font-size: 12px;
-				background-color: #f0f0f0;
-				margin: 0px;
-				overflow: hidden;
-			}
-			#instructions { width: 33%; position: absolute; top: 10px; right: 10px; }
-		</style>
-	</head>
-	<body>
-	  <div id="instructions">
-	    <p>click to place. shift-click to remove. drag to change camera</p>
-	    <p>copy paste the output below into <a target="_blank" href="http://maxogden.github.com/voxel-script-gun/">the script gun</a></p>
-	   <div id="output"></div>
-	  </div>
-	  
-		<script type="text/javascript" src="index.js"></script>
-	</body>
+  <head>
+    <title>Voxels</title>
+    <meta charset="utf-8">
+    <style type="text/css">
+      body {
+        font-family: Monospace;
+        font-size: 12px;
+        margin: 0px;
+        overflow: hidden;
+      }
+      .share:before { content: none !important;}
+      .share { width: 225px; }
+      .color { width: 18px; height: 16px; display: block; }
+      .color.one { background: #2ECC71; }
+      .color.two { background: #3498DB; }
+      .color.three { background: #34495E; }
+      .color.four { background: #E67E22; }
+      .color.five { background: #ECF0F1; }
+      #instructions { width: 250px; position: absolute; top: 10px; right: 10px; }
+    </style>
+    
+    <link href="flatui/css/bootstrap.css" rel="stylesheet">
+    <link href="flatui/css/flat-ui.css" rel="stylesheet">
+    
+  </head>
+  <body>
+    <div id="instructions">
+      <h3 class="demo-panel-title">Voxel Painter</h3>
+      <div class="share mrl">
+        <ul>
+          <li>
+            <label class="share-label" for="share-toggle2">Grid</label>
+            <div data-action="showGrid" class="toggle">
+              <label class="toggle-radio" for="share-toggle2">ON</label>
+              <input type="radio" name="share-toggles" id="share-toggle2" value="toggle1" checked="checked">
+              <label class="toggle-radio" for="share-toggle1">OFF</label>
+              <input type="radio" name="share-toggles" id="share-toggle1" value="toggle2">
+            </div>
+          </li>
+          <li>
+            <label class="share-label" for="share-toggle4">Wireframe</label>
+            <div data-action="setWireframe" class="toggle">
+              <label class="toggle-radio" for="share-toggle4">ON</label>
+              <input type="radio" name="share-toggles2" id="share-toggle4" value="toggle1">
+              <label class="toggle-radio" for="share-toggle3">OFF</label>
+              <input type="radio" name="share-toggles2" id="share-toggle3" value="toggle2" checked="checked">
+            </div>
+          </li>
+        </ul>
+      </div> <!-- /share -->
+      
+      <div class="row">
+        <div class="span3">
+          <div class="btn-toolbar">
+            <div class="btn-group color-picker">
+              <a class="btn btn-primary active" href="#"><i data-color="0" class="color one"></i></a>
+              <a class="btn btn-primary" href="#"><i data-color="1" class="color two"></i></a>
+              <a class="btn btn-primary" href="#"><i data-color="2" class="color three"></i></a>
+              <a class="btn btn-primary" href="#"><i data-color="3" class="color four"></i></a>
+              <a class="btn btn-primary" href="#"><i data-color="4" class="color five"></i></a>
+            </div>
+          </div> <!-- /toolbar -->
+        </div>
+      </div>
+      
+     <div id="output"></div>
+    </div>
+    
+    <script src="flatui/js/jquery-1.8.2.min.js"></script>
+    <script src="flatui/js/jquery-ui-1.10.0.custom.min.js"></script>
+    <script src="flatui/js/jquery.dropkick-1.0.0.js"></script>
+    <script src="flatui/js/custom_checkbox_and_radio.js"></script>
+    <script src="flatui/js/custom_radio.js"></script>
+    <script src="flatui/js/jquery.tagsinput.js"></script>
+    <script src="flatui/js/bootstrap-tooltip.js"></script>
+    <script src="flatui/js/jquery.placeholder.js"></script>
+    <script src="flatui/js/application.js"></script>
+    <script type="text/javascript" src="index.js"></script>
+    
+  </body>
 </html>
