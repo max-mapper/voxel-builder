@@ -1,441 +1,486 @@
-(function(){var require = function (file, cwd) {
-    var resolved = require.resolve(file, cwd || '/');
-    var mod = require.modules[resolved];
-    if (!mod) throw new Error(
-        'Failed to resolve module ' + file + ', tried ' + resolved
-    );
-    var cached = require.cache[resolved];
-    var res = cached? cached.exports : mod();
-    return res;
-};
+;(function(e,t,n,r){function i(r){if(!n[r]){if(!t[r]){if(e)return e(r);throw new Error("Cannot find module '"+r+"'")}var s=n[r]={exports:{}};t[r][0](function(e){var n=t[r][1][e];return i(n?n:e)},s,s.exports)}return n[r].exports}for(var s=0;s<r.length;s++)i(r[s]);return i})(typeof require!=="undefined"&&require,{1:[function(require,module,exports){var THREE = window.three = require('three')
+var raf = require('raf')
+var container
+var output = document.querySelector('#output')
+var camera, renderer, brush
+var projector, plane
+var mouse2D, mouse3D, raycaster, objectHovered
+var isShiftDown = false, isCtrlDown = false, isMouseDown = false
+var onMouseDownPosition = new THREE.Vector2(), onMouseDownPhi = 60, onMouseDownTheta = 45
+var radius = 1600, theta = 90, phi = 60
+target = new THREE.Vector3( 0, 200, 0 )
+window.color = 0
 
-require.paths = [];
-require.modules = {};
-require.cache = {};
-require.extensions = [".js",".coffee",".json"];
-
-require._core = {
-    'assert': true,
-    'events': true,
-    'fs': true,
-    'path': true,
-    'vm': true
-};
-
-require.resolve = (function () {
-    return function (x, cwd) {
-        if (!cwd) cwd = '/';
-        
-        if (require._core[x]) return x;
-        var path = require.modules.path();
-        cwd = path.resolve('/', cwd);
-        var y = cwd || '/';
-        
-        if (x.match(/^(?:\.\.?\/|\/)/)) {
-            var m = loadAsFileSync(path.resolve(y, x))
-                || loadAsDirectorySync(path.resolve(y, x));
-            if (m) return m;
-        }
-        
-        var n = loadNodeModulesSync(x, y);
-        if (n) return n;
-        
-        throw new Error("Cannot find module '" + x + "'");
-        
-        function loadAsFileSync (x) {
-            x = path.normalize(x);
-            if (require.modules[x]) {
-                return x;
-            }
-            
-            for (var i = 0; i < require.extensions.length; i++) {
-                var ext = require.extensions[i];
-                if (require.modules[x + ext]) return x + ext;
-            }
-        }
-        
-        function loadAsDirectorySync (x) {
-            x = x.replace(/\/+$/, '');
-            var pkgfile = path.normalize(x + '/package.json');
-            if (require.modules[pkgfile]) {
-                var pkg = require.modules[pkgfile]();
-                var b = pkg.browserify;
-                if (typeof b === 'object' && b.main) {
-                    var m = loadAsFileSync(path.resolve(x, b.main));
-                    if (m) return m;
-                }
-                else if (typeof b === 'string') {
-                    var m = loadAsFileSync(path.resolve(x, b));
-                    if (m) return m;
-                }
-                else if (pkg.main) {
-                    var m = loadAsFileSync(path.resolve(x, pkg.main));
-                    if (m) return m;
-                }
-            }
-            
-            return loadAsFileSync(x + '/index');
-        }
-        
-        function loadNodeModulesSync (x, start) {
-            var dirs = nodeModulesPathsSync(start);
-            for (var i = 0; i < dirs.length; i++) {
-                var dir = dirs[i];
-                var m = loadAsFileSync(dir + '/' + x);
-                if (m) return m;
-                var n = loadAsDirectorySync(dir + '/' + x);
-                if (n) return n;
-            }
-            
-            var m = loadAsFileSync(x);
-            if (m) return m;
-        }
-        
-        function nodeModulesPathsSync (start) {
-            var parts;
-            if (start === '/') parts = [ '' ];
-            else parts = path.normalize(start).split('/');
-            
-            var dirs = [];
-            for (var i = parts.length - 1; i >= 0; i--) {
-                if (parts[i] === 'node_modules') continue;
-                var dir = parts.slice(0, i + 1).join('/') + '/node_modules';
-                dirs.push(dir);
-            }
-            
-            return dirs;
-        }
-    };
-})();
-
-require.alias = function (from, to) {
-    var path = require.modules.path();
-    var res = null;
-    try {
-        res = require.resolve(from + '/package.json', '/');
-    }
-    catch (err) {
-        res = require.resolve(from, '/');
-    }
-    var basedir = path.dirname(res);
-    
-    var keys = (Object.keys || function (obj) {
-        var res = [];
-        for (var key in obj) res.push(key);
-        return res;
-    })(require.modules);
-    
-    for (var i = 0; i < keys.length; i++) {
-        var key = keys[i];
-        if (key.slice(0, basedir.length + 1) === basedir + '/') {
-            var f = key.slice(basedir.length);
-            require.modules[to + f] = require.modules[basedir + f];
-        }
-        else if (key === basedir) {
-            require.modules[to] = require.modules[basedir];
-        }
-    }
-};
-
-(function () {
-    var process = {};
-    var global = typeof window !== 'undefined' ? window : {};
-    var definedProcess = false;
-    
-    require.define = function (filename, fn) {
-        if (!definedProcess && require.modules.__browserify_process) {
-            process = require.modules.__browserify_process();
-            definedProcess = true;
-        }
-        
-        var dirname = require._core[filename]
-            ? ''
-            : require.modules.path().dirname(filename)
-        ;
-        
-        var require_ = function (file) {
-            var requiredModule = require(file, dirname);
-            var cached = require.cache[require.resolve(file, dirname)];
-
-            if (cached && cached.parent === null) {
-                cached.parent = module_;
-            }
-
-            return requiredModule;
-        };
-        require_.resolve = function (name) {
-            return require.resolve(name, dirname);
-        };
-        require_.modules = require.modules;
-        require_.define = require.define;
-        require_.cache = require.cache;
-        var module_ = {
-            id : filename,
-            filename: filename,
-            exports : {},
-            loaded : false,
-            parent: null
-        };
-        
-        require.modules[filename] = function () {
-            require.cache[filename] = module_;
-            fn.call(
-                module_.exports,
-                require_,
-                module_,
-                module_.exports,
-                dirname,
-                filename,
-                process,
-                global
-            );
-            module_.loaded = true;
-            return module_.exports;
-        };
-    };
-})();
-
-
-require.define("path",function(require,module,exports,__dirname,__filename,process,global){function filter (xs, fn) {
-    var res = [];
-    for (var i = 0; i < xs.length; i++) {
-        if (fn(xs[i], i, xs)) res.push(xs[i]);
-    }
-    return res;
+window.setWireframe = function(bool) {
+  scene.children
+  .filter(function(el) { return el.geometry instanceof three.CubeGeometry })
+  .map(function(mesh) { mesh.material.wireframe = bool })
 }
 
-// resolves . and .. elements in a path array with directory names there
-// must be no slashes, empty elements, or device names (c:\) in the array
-// (so also no leading and trailing slashes - it does not distinguish
-// relative and absolute paths)
-function normalizeArray(parts, allowAboveRoot) {
-  // if the path tries to go above the root, `up` ends up > 0
-  var up = 0;
-  for (var i = parts.length; i >= 0; i--) {
-    var last = parts[i];
-    if (last == '.') {
-      parts.splice(i, 1);
-    } else if (last === '..') {
-      parts.splice(i, 1);
-      up++;
-    } else if (up) {
-      parts.splice(i, 1);
-      up--;
-    }
-  }
-
-  // if the path is allowed to go above the root, restore leading ..s
-  if (allowAboveRoot) {
-    for (; up--; up) {
-      parts.unshift('..');
-    }
-  }
-
-  return parts;
+window.showGrid = function(bool) {
+  grid.material.visible = bool
 }
 
-// Regex to split a filename into [*, dir, basename, ext]
-// posix version
-var splitPathRe = /^(.+\/(?!$)|\/)?((?:.+?)?(\.[^.]*)?)$/;
-
-// path.resolve([from ...], to)
-// posix version
-exports.resolve = function() {
-var resolvedPath = '',
-    resolvedAbsolute = false;
-
-for (var i = arguments.length; i >= -1 && !resolvedAbsolute; i--) {
-  var path = (i >= 0)
-      ? arguments[i]
-      : process.cwd();
-
-  // Skip empty and invalid entries
-  if (typeof path !== 'string' || !path) {
-    continue;
-  }
-
-  resolvedPath = path + '/' + resolvedPath;
-  resolvedAbsolute = path.charAt(0) === '/';
+function v2h(value) {
+  value = parseInt(value).toString(16);
+  return value.length < 2 ? value + "0" : value;
+}
+function rgb2hex(rgb) {
+  if (rgb.match(/^rgb/) == null) return rgb;
+  var arr = rgb.match(/\d+/g);
+  return v2h(arr[0]) + v2h(arr[1]) + v2h(arr[2]);
 }
 
-// At this point the path should be resolved to a full absolute path, but
-// handle relative paths to be safe (might happen when process.cwd() fails)
+function scale( x, fromLow, fromHigh, toLow, toHigh ) {
+  return ( x - fromLow ) * ( toHigh - toLow ) / ( fromHigh - fromLow ) + toLow
+}
 
-// Normalize the path
-resolvedPath = normalizeArray(filter(resolvedPath.split('/'), function(p) {
-    return !!p;
-  }), !resolvedAbsolute).join('/');
+var colors = Array.prototype.slice.call(document.querySelectorAll('.color')).map(function(el) {
+  var rgb = getComputedStyle(el).backgroundColor
+  return rgb.match(/\d+/g).map(function(num) { return scale(num, 0, 255, 0, 1) })
+})
 
-  return ((resolvedAbsolute ? '/' : '') + resolvedPath) || '.';
-};
+var cube = new THREE.CubeGeometry( 50, 50, 50 )
 
-// path.normalize(path)
-// posix version
-exports.normalize = function(path) {
-var isAbsolute = path.charAt(0) === '/',
-    trailingSlash = path.slice(-1) === '/';
+init()
+raf(window).on('data', render)
 
-// Normalize the path
-path = normalizeArray(filter(path.split('/'), function(p) {
-    return !!p;
-  }), !isAbsolute).join('/');
+function init() {
 
-  if (!path && !isAbsolute) {
-    path = '.';
+  container = document.createElement( 'div' )
+  document.body.appendChild( container )
+
+  camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 10000 )
+  camera.position.x = radius * Math.sin( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
+  camera.position.y = radius * Math.sin( phi * Math.PI / 360 )
+  camera.position.z = radius * Math.cos( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
+
+  window.scene = new THREE.Scene()
+
+  // Grid
+
+  var size = 500, step = 50
+
+  var geometry = new THREE.Geometry()
+
+  for ( var i = - size; i <= size; i += step ) {
+
+    geometry.vertices.push( new THREE.Vector3( - size, 0, i ) )
+    geometry.vertices.push( new THREE.Vector3(   size, 0, i ) )
+
+    geometry.vertices.push( new THREE.Vector3( i, 0, - size ) )
+    geometry.vertices.push( new THREE.Vector3( i, 0,   size ) )
+
   }
-  if (path && trailingSlash) {
-    path += '/';
+
+  var material = new THREE.LineBasicMaterial( { color: 0x000000, opacity: 0.2 } )
+
+  var line = new THREE.Line( geometry, material )
+  line.type = THREE.LinePieces
+  window.grid = line
+  scene.add( line )
+
+  // Plane
+
+  projector = new THREE.Projector()
+
+  plane = new THREE.Mesh( new THREE.PlaneGeometry( 1000, 1000 ), new THREE.MeshBasicMaterial() )
+  plane.rotation.x = - Math.PI / 2
+  plane.visible = false
+  scene.add( plane )
+
+  mouse2D = new THREE.Vector3( 0, 10000, 0.5 )
+
+  // Brush
+  
+  var cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true, wireframeLinewidth: 2 })
+  
+  brush = new THREE.Mesh( cube, cubeMaterial)
+  brush.position.y = 2000
+  brush.overdraw = true
+  scene.add( brush )
+
+  // Lights
+
+  var ambientLight = new THREE.AmbientLight( 0x606060 )
+  scene.add( ambientLight )
+
+  var directionalLight = new THREE.DirectionalLight( 0xffffff )
+  directionalLight.position.x = Math.random() - 0.5
+  directionalLight.position.y = Math.random() - 0.5
+  directionalLight.position.z = Math.random() - 0.5
+  directionalLight.position.normalize()
+  scene.add( directionalLight )
+
+  var directionalLight = new THREE.DirectionalLight( 0x808080 )
+  directionalLight.position.x = Math.random() - 0.5
+  directionalLight.position.y = Math.random() - 0.5
+  directionalLight.position.z = Math.random() - 0.5
+  directionalLight.position.normalize()
+  scene.add( directionalLight )
+
+  renderer = new THREE.CanvasRenderer()
+  renderer.setSize( window.innerWidth, window.innerHeight )
+
+  container.appendChild(renderer.domElement)
+
+  renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false )
+  renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false )
+  renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false )
+  document.addEventListener( 'keydown', onDocumentKeyDown, false )
+  document.addEventListener( 'keyup', onDocumentKeyUp, false )
+
+  //
+
+  window.addEventListener( 'resize', onWindowResize, false )
+  
+  if ( window.location.hash ) buildFromHash()
+
+}
+
+function onWindowResize() {
+
+  camera.aspect = window.innerWidth / window.innerHeight
+  camera.updateProjectionMatrix()
+
+  renderer.setSize( window.innerWidth, window.innerHeight )
+
+}
+
+function interact() {
+  if (typeof raycaster === 'undefined') return
+  var intersects = raycaster.intersectObjects( scene.children )
+
+  if ( objectHovered ) {
+    objectHovered.material.opacity = 1
+    objectHovered = null
+  }
+
+  if ( intersects.length > 0 ) {
+    var intersect = intersects[ 0 ].object !== brush ? intersects[ 0 ] : intersects[ 1 ]
+    if ( intersect ) {
+      if ( isShiftDown ) {
+        if ( intersect.object != plane ) {
+          objectHovered = intersect.object
+          objectHovered.material.opacity = 0.5
+          return
+        }
+      } else {
+        var normal = intersect.face.normal.clone()
+        normal.applyMatrix4( intersect.object.matrixRotationWorld )
+        var position = new THREE.Vector3().addVectors( intersect.point, normal )
+        brush.position.x = Math.floor( position.x / 50 ) * 50 + 25
+        brush.position.y = Math.floor( position.y / 50 ) * 50 + 25
+        brush.position.z = Math.floor( position.z / 50 ) * 50 + 25
+        return
+      }
+    }
+  }
+  brush.position.y = 2000
+}
+
+function onDocumentMouseMove( event ) {
+
+  event.preventDefault()
+  
+  if ( isMouseDown ) {
+
+    theta = - ( ( event.clientX - onMouseDownPosition.x ) * 0.5 ) + onMouseDownTheta
+    phi = ( ( event.clientY - onMouseDownPosition.y ) * 0.5 ) + onMouseDownPhi
+
+    phi = Math.min( 180, Math.max( 0, phi ) )
+
+    camera.position.x = radius * Math.sin( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
+    camera.position.y = radius * Math.sin( phi * Math.PI / 360 )
+    camera.position.z = radius * Math.cos( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
+    camera.updateMatrix()
+
+  }
+
+  mouse2D.x = ( event.clientX / window.innerWidth ) * 2 - 1
+  mouse2D.y = - ( event.clientY / window.innerHeight ) * 2 + 1
+
+  interact()
+}
+
+function onDocumentMouseDown( event ) {
+  event.preventDefault()
+  isMouseDown = true
+  onMouseDownTheta = theta
+  onMouseDownPhi = phi
+  onMouseDownPosition.x = event.clientX
+  onMouseDownPosition.y = event.clientY
+}
+
+function onDocumentMouseUp( event ) {
+  event.preventDefault()
+  isMouseDown = false
+  onMouseDownPosition.x = event.clientX - onMouseDownPosition.x
+  onMouseDownPosition.y = event.clientY - onMouseDownPosition.y
+  
+  if ( onMouseDownPosition.length() > 5 ) return
+  
+  var intersects = raycaster.intersectObjects( scene.children )
+  if ( intersects.length > 0 ) {
+
+    var intersect = intersects[ 0 ].object !== brush ? intersects[ 0 ] : intersects[ 1 ]
+
+    if ( intersect ) {
+
+      if ( isShiftDown ) {
+
+        if ( intersect.object != plane ) {
+
+          scene.remove( intersect.object );
+
+        }
+      } else {
+        var newMaterial = new THREE.MeshBasicMaterial({ vertexColors: THREE.FaceColors })
+        newMaterial.color.setRGB( colors[color][0], colors[color][1], colors[color][2] )
+        var voxel = new THREE.Mesh( cube, newMaterial )
+        voxel.position.copy(brush.position)
+        voxel.matrixAutoUpdate = false
+        voxel.updateMatrix()
+        scene.add( voxel )
+      }
+
+    }
+
   }
   
-  return (isAbsolute ? '/' : '') + path;
-};
+  updateHash()
+  render()
+  interact()
+}
 
+function onDocumentKeyDown( event ) {
 
-// posix version
-exports.join = function() {
-  var paths = Array.prototype.slice.call(arguments, 0);
-  return exports.normalize(filter(paths, function(p, index) {
-    return p && typeof p === 'string';
-  }).join('/'));
-};
+  switch( event.keyCode ) {
 
+    case 16: isShiftDown = true; break
+    case 17: isCtrlDown = true; break
 
-exports.dirname = function(path) {
-  var dir = splitPathRe.exec(path)[1] || '';
-  var isWindows = false;
-  if (!dir) {
-    // No dirname
-    return '.';
-  } else if (dir.length === 1 ||
-      (isWindows && dir.length <= 3 && dir.charAt(1) === ':')) {
-    // It is just a slash or a drive letter with a slash
-    return dir;
-  } else {
-    // It is a full dirname, strip trailing slash
-    return dir.substring(0, dir.length - 1);
-  }
-};
-
-
-exports.basename = function(path, ext) {
-  var f = splitPathRe.exec(path)[2] || '';
-  // TODO: make this comparison case-insensitive on windows?
-  if (ext && f.substr(-1 * ext.length) === ext) {
-    f = f.substr(0, f.length - ext.length);
-  }
-  return f;
-};
-
-
-exports.extname = function(path) {
-  return splitPathRe.exec(path)[3] || '';
-};
-
-exports.relative = function(from, to) {
-  from = exports.resolve(from).substr(1);
-  to = exports.resolve(to).substr(1);
-
-  function trim(arr) {
-    var start = 0;
-    for (; start < arr.length; start++) {
-      if (arr[start] !== '') break;
-    }
-
-    var end = arr.length - 1;
-    for (; end >= 0; end--) {
-      if (arr[end] !== '') break;
-    }
-
-    if (start > end) return [];
-    return arr.slice(start, end - start + 1);
   }
 
-  var fromParts = trim(from.split('/'));
-  var toParts = trim(to.split('/'));
+}
 
-  var length = Math.min(fromParts.length, toParts.length);
-  var samePartsLength = length;
-  for (var i = 0; i < length; i++) {
-    if (fromParts[i] !== toParts[i]) {
-      samePartsLength = i;
-      break;
+function onDocumentKeyUp( event ) {
+
+  switch( event.keyCode ) {
+
+    case 16: isShiftDown = false; break
+    case 17: isCtrlDown = false; break
+
+  }
+}
+
+
+function buildFromHash() {
+
+  var hash = window.location.hash.substr( 1 ),
+  version = hash.substr( 0, 2 );
+
+  if ( version == "A/" ) {
+
+    var current = { x: 0, y: 0, z: 0, c: 0 }
+    var data = decode( hash.substr( 2 ) );
+    var i = 0, l = data.length;
+
+    while ( i < l ) {
+
+      var code = data[ i ++ ].toString( 2 );
+      if ( code.charAt( 1 ) == "1" ) current.x += data[ i ++ ] - 32;
+      if ( code.charAt( 2 ) == "1" ) current.y += data[ i ++ ] - 32;
+      if ( code.charAt( 3 ) == "1" ) current.z += data[ i ++ ] - 32;
+      if ( code.charAt( 4 ) == "1" ) current.c += data[ i ++ ] - 32;
+      if ( code.charAt( 0 ) == "1" ) {
+        var material = new THREE.MeshBasicMaterial()
+        var col = colors[current.c] || colors[0]
+        material.color.setRGB( col[0], col[1], col[2] )
+        var voxel = new THREE.Mesh( cube, material);
+        voxel.position.x = current.x * 50 + 25;
+        voxel.position.y = current.y * 50 + 25;
+        voxel.position.z = current.z * 50 + 25;
+        voxel.overdraw = true;
+        scene.add( voxel );
+
+      }
     }
+
   }
 
-  var outputParts = [];
-  for (var i = samePartsLength; i < fromParts.length; i++) {
-    outputParts.push('..');
+  updateHash();
+
+}
+
+function updateHash() {
+
+  var data = [], voxels = [], code
+  var current = { x: 0, y: 0, z: 0, c: 0 }
+  var last = { x: 0, y: 0, z: 0, c: 0 }
+  for ( var i in scene.children ) {
+
+    var object = scene.children[ i ]
+
+    if ( object instanceof THREE.Mesh && object !== plane && object !== brush ) {
+
+      current.x = ( object.position.x - 25 ) / 50;
+      current.y = ( object.position.y - 25 ) / 50;
+      current.z = ( object.position.z - 25 ) / 50;
+      
+      var colorString = ['r', 'g', 'b'].map(function(col) { return object.material.color[col] }).join('')
+      for (var i = 0; i < colors.length; i++) if (colors[i].join('') === colorString) current.c = i
+      voxels.push({x: current.x, y: current.y + 1, z: current.z , c: current.c + 1})
+      
+      code = 0;
+
+      if ( current.x != last.x ) code += 1000;
+      if ( current.y != last.y ) code += 100;
+      if ( current.z != last.z ) code += 10;
+      if ( current.c != last.c ) code += 1;
+
+      code += 10000;
+
+      data.push( parseInt( code, 2 ) );
+
+      if ( current.x != last.x ) {
+
+        data.push( current.x - last.x + 32 );
+        last.x = current.x;
+
+      }
+
+      if ( current.y != last.y ) {
+
+        data.push( current.y - last.y + 32 );
+        last.y = current.y;
+
+      }
+
+      if ( current.z != last.z ) {
+
+        data.push( current.z - last.z + 32 );
+        last.z = current.z;
+
+      }
+
+      if ( current.c != last.c ) {
+
+        data.push( current.c - last.c + 32 );
+        last.c = current.c;
+
+      }
+
+    }
+
   }
+  if (voxels.length > 0) updateFunction(voxels)
+  data = encode( data );
+  window.location.hash = "A/" + data;
+}
 
-  outputParts = outputParts.concat(toParts.slice(samePartsLength));
+function updateFunction(voxels) {
+  var dimensions = getDimensions(voxels)
+  voxels = voxels.map(function(v) { return [v.x, v.y, v.z, v.c]})
+  var funcString = "var voxels = " + JSON.stringify(voxels) + "<br>"
+  funcString += 'var dimensions = ' + JSON.stringify(dimensions) + '<br>'
+  funcString += 'var size = game.cubeSize<br>'
+  funcString += 'voxels.map(function(voxel) {<br>' +
+    '&nbsp;&nbsp;game.setBlock({x: position.x + voxel[0] * size, y: position.y + voxel[1] * size, z: position.z + voxel[2] * size}, voxel[3])<br>' +
+  '})'
+  output.innerHTML = funcString
+}
 
-  return outputParts.join('/');
-};
+function getDimensions(voxels) {
+  var low = [0, 0, 0], high = [0, 0, 0]
+  voxels.map(function(voxel) {
+    if (voxel.x < low[0]) low[0] = voxel.x
+    if (voxel.x > high[0]) high[0] = voxel.x
+    if (voxel.y < low[1]) low[1] = voxel.y
+    if (voxel.y > high[1]) high[1] = voxel.y
+    if (voxel.z < low[2]) low[2] = voxel.z
+    if (voxel.z > high[2]) high[2] = voxel.z
+  })
+  return [ high[0]-low[0], high[1]-low[1], high[2]-low[2] ]
+}
 
-});
+// https://gist.github.com/665235
 
-require.define("__browserify_process",function(require,module,exports,__dirname,__filename,process,global){var process = module.exports = {};
+function decode( string ) {
 
-process.nextTick = (function () {
-    var canSetImmediate = typeof window !== 'undefined'
-        && window.setImmediate;
-    var canPost = typeof window !== 'undefined'
-        && window.postMessage && window.addEventListener
-    ;
+  var output = [];
+  string.split('').forEach( function ( v ) { output.push( "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".indexOf( v ) ); } );
+  return output;
 
-    if (canSetImmediate) {
-        return function (f) { return window.setImmediate(f) };
+}
+
+function encode( array ) {
+
+  var output = "";
+  array.forEach( function ( v ) { output += "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".charAt( v ); } );
+  return output;
+
+}
+
+function save() {
+
+  window.open( renderer.domElement.toDataURL('image/png'), 'mywindow' )
+
+}
+
+function render() {
+  camera.lookAt( target )
+  raycaster = projector.pickingRay( mouse2D.clone(), camera )
+  renderer.render( scene, camera )
+}
+},{"three":2,"raf":3}],3:[function(require,module,exports){(function(){module.exports = raf
+
+var EE = require('events').EventEmitter
+  , global = typeof window === 'undefined' ? this : window
+
+var _raf =
+  global.requestAnimationFrame ||
+  global.webkitRequestAnimationFrame ||
+  global.mozRequestAnimationFrame ||
+  global.msRequestAnimationFrame ||
+  global.oRequestAnimationFrame ||
+  (global.setImmediate ? function(fn, el) {
+    setImmediate(fn)
+  } :
+  function(fn, el) {
+    setTimeout(fn, 0)
+  })
+
+function raf(el) {
+  var now = raf.now()
+    , ee = new EE
+
+  ee.pause = function() { ee.paused = true }
+  ee.resume = function() { ee.paused = false }
+
+  _raf(iter, el)
+
+  return ee
+
+  function iter(timestamp) {
+    var _now = raf.now()
+      , dt = _now - now
+    
+    now = _now
+
+    ee.emit('data', dt)
+
+    if(!ee.paused) {
+      _raf(iter, el)
     }
+  }
+}
 
-    if (canPost) {
-        var queue = [];
-        window.addEventListener('message', function (ev) {
-            if (ev.source === window && ev.data === 'browserify-tick') {
-                ev.stopPropagation();
-                if (queue.length > 0) {
-                    var fn = queue.shift();
-                    fn();
-                }
-            }
-        }, true);
+raf.polyfill = _raf
+raf.now = function() { return Date.now() }
 
-        return function nextTick(fn) {
-            queue.push(fn);
-            window.postMessage('browserify-tick', '*');
-        };
-    }
-
-    return function nextTick(fn) {
-        setTimeout(fn, 0);
-    };
-})();
-
-process.title = 'browser';
-process.browser = true;
-process.env = {};
-process.argv = [];
-
-process.binding = function (name) {
-    if (name === 'evals') return (require)('vm')
-    else throw new Error('No such module. (Possibly not yet loaded)')
-};
-
-(function () {
-    var cwd = '/';
-    var path;
-    process.cwd = function () { return cwd };
-    process.chdir = function (dir) {
-        if (!path) path = require('path');
-        cwd = path.resolve(dir, cwd);
-    };
-})();
-
-});
-
-require.define("/node_modules/three/package.json",function(require,module,exports,__dirname,__filename,process,global){module.exports = {"main":"./three.js"}
-});
-
-require.define("/node_modules/three/three.js",function(require,module,exports,__dirname,__filename,process,global){
+})()
+},{"events":4}],2:[function(require,module,exports){(function(){
 var window = window || {};
 var self = self || {};
 /**
@@ -36240,60 +36285,61 @@ if (typeof exports !== 'undefined') {
   this['THREE'] = THREE;
 }
 
-});
+})()
+},{}],5:[function(require,module,exports){// shim for using process in browser
 
-require.define("/node_modules/raf/package.json",function(require,module,exports,__dirname,__filename,process,global){module.exports = {"main":"index.js"}
-});
+var process = module.exports = {};
 
-require.define("/node_modules/raf/index.js",function(require,module,exports,__dirname,__filename,process,global){module.exports = raf
+process.nextTick = (function () {
+    var canSetImmediate = typeof window !== 'undefined'
+    && window.setImmediate;
+    var canPost = typeof window !== 'undefined'
+    && window.postMessage && window.addEventListener
+    ;
 
-var EE = require('events').EventEmitter
-  , global = typeof window === 'undefined' ? this : window
-
-var _raf =
-  global.requestAnimationFrame ||
-  global.webkitRequestAnimationFrame ||
-  global.mozRequestAnimationFrame ||
-  global.msRequestAnimationFrame ||
-  global.oRequestAnimationFrame ||
-  (global.setImmediate ? function(fn, el) {
-    setImmediate(fn)
-  } :
-  function(fn, el) {
-    setTimeout(fn, 0)
-  })
-
-function raf(el) {
-  var now = raf.now()
-    , ee = new EE
-
-  ee.pause = function() { ee.paused = true }
-  ee.resume = function() { ee.paused = false }
-
-  _raf(iter, el)
-
-  return ee
-
-  function iter(timestamp) {
-    var _now = raf.now()
-      , dt = _now - now
-    
-    now = _now
-
-    ee.emit('data', dt)
-
-    if(!ee.paused) {
-      _raf(iter, el)
+    if (canSetImmediate) {
+        return function (f) { return window.setImmediate(f) };
     }
-  }
+
+    if (canPost) {
+        var queue = [];
+        window.addEventListener('message', function (ev) {
+            if (ev.source === window && ev.data === 'process-tick') {
+                ev.stopPropagation();
+                if (queue.length > 0) {
+                    var fn = queue.shift();
+                    fn();
+                }
+            }
+        }, true);
+
+        return function nextTick(fn) {
+            queue.push(fn);
+            window.postMessage('process-tick', '*');
+        };
+    }
+
+    return function nextTick(fn) {
+        setTimeout(fn, 0);
+    };
+})();
+
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
 }
 
-raf.polyfill = _raf
-raf.now = function() { return Date.now() }
+// TODO(shtylman)
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
 
-});
-
-require.define("events",function(require,module,exports,__dirname,__filename,process,global){if (!process.EventEmitter) process.EventEmitter = function () {};
+},{}],4:[function(require,module,exports){(function(process){if (!process.EventEmitter) process.EventEmitter = function () {};
 
 var EventEmitter = exports.EventEmitter = process.EventEmitter;
 var isArray = typeof Array.isArray === 'function'
@@ -36458,6 +36504,11 @@ EventEmitter.prototype.removeListener = function(type, listener) {
 };
 
 EventEmitter.prototype.removeAllListeners = function(type) {
+  if (arguments.length === 0) {
+    this._events = {};
+    return this;
+  }
+
   // does not use listeners(), so no side effect of creating _events[type]
   if (type && this._events && this._events[type]) this._events[type] = null;
   return this;
@@ -36472,428 +36523,5 @@ EventEmitter.prototype.listeners = function(type) {
   return this._events[type];
 };
 
-});
-
-require.define("/index.js",function(require,module,exports,__dirname,__filename,process,global){var THREE = window.three = require('three')
-var raf = require('raf')
-var container
-var output = document.querySelector('#output')
-var camera, scene, renderer, brush
-var projector, plane
-var mouse2D, mouse3D, raycaster, objectHovered
-var isShiftDown = false, isCtrlDown = false, isMouseDown = false
-var onMouseDownPosition = new THREE.Vector2(), onMouseDownPhi = 60, onMouseDownTheta = 45
-var radius = 1600, theta = 90, phi = 60
-target = new THREE.Vector3( 0, 200, 0 )
-var color = 0
-var colors = [ 0xDF1F1F, 0xDFAF1F, 0x80DF1F, 0x1FDF50, 0x1FDFDF, 0x1F4FDF, 0x7F1FDF, 0xDF1FAF, 0xEFEFEF, 0x303030 ]
-var cube = new THREE.CubeGeometry( 50, 50, 50 )
-
-init()
-raf(window).on('data', animate)
-
-function init() {
-
-  container = document.createElement( 'div' )
-  document.body.appendChild( container )
-
-  camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 10000 )
-  camera.position.x = radius * Math.sin( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
-  camera.position.y = radius * Math.sin( phi * Math.PI / 360 )
-  camera.position.z = radius * Math.cos( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
-
-  scene = new THREE.Scene()
-
-  // Grid
-
-  var size = 500, step = 50
-
-  var geometry = new THREE.Geometry()
-
-  for ( var i = - size; i <= size; i += step ) {
-
-    geometry.vertices.push( new THREE.Vector3( - size, 0, i ) )
-    geometry.vertices.push( new THREE.Vector3(   size, 0, i ) )
-
-    geometry.vertices.push( new THREE.Vector3( i, 0, - size ) )
-    geometry.vertices.push( new THREE.Vector3( i, 0,   size ) )
-
-  }
-
-  var material = new THREE.LineBasicMaterial( { color: 0x000000, opacity: 0.2 } )
-
-  var line = new THREE.Line( geometry, material )
-  line.type = THREE.LinePieces
-  scene.add( line )
-
-  // Plane
-
-  projector = new THREE.Projector()
-
-  plane = new THREE.Mesh( new THREE.PlaneGeometry( 1000, 1000 ), new THREE.MeshBasicMaterial() )
-  plane.rotation.x = - Math.PI / 2
-  plane.visible = false
-  scene.add( plane )
-
-  mouse2D = new THREE.Vector3( 0, 10000, 0.5 )
-
-  // Brush
-  
-  var cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true, wireframeLinewidth: 2 })
-  brush = new THREE.Mesh( cube, cubeMaterial)
-  brush.position.y = 2000
-  brush.overdraw = true
-  scene.add( brush )
-
-  // Lights
-
-  var ambientLight = new THREE.AmbientLight( 0x606060 )
-  scene.add( ambientLight )
-
-  var directionalLight = new THREE.DirectionalLight( 0xffffff )
-  directionalLight.position.x = Math.random() - 0.5
-  directionalLight.position.y = Math.random() - 0.5
-  directionalLight.position.z = Math.random() - 0.5
-  directionalLight.position.normalize()
-  scene.add( directionalLight )
-
-  var directionalLight = new THREE.DirectionalLight( 0x808080 )
-  directionalLight.position.x = Math.random() - 0.5
-  directionalLight.position.y = Math.random() - 0.5
-  directionalLight.position.z = Math.random() - 0.5
-  directionalLight.position.normalize()
-  scene.add( directionalLight )
-
-  renderer = new THREE.CanvasRenderer()
-  renderer.setSize( window.innerWidth, window.innerHeight )
-
-  container.appendChild(renderer.domElement)
-
-  renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false )
-  renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false )
-  renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false )
-  document.addEventListener( 'keydown', onDocumentKeyDown, false )
-  document.addEventListener( 'keyup', onDocumentKeyUp, false )
-
-  //
-
-  window.addEventListener( 'resize', onWindowResize, false )
-  
-  if ( window.location.hash ) buildFromHash()
-
-}
-
-function onWindowResize() {
-
-  camera.aspect = window.innerWidth / window.innerHeight
-  camera.updateProjectionMatrix()
-
-  renderer.setSize( window.innerWidth, window.innerHeight )
-
-}
-
-function interact() {
-  var intersects = raycaster.intersectObjects( scene.children )
-
-  if ( objectHovered ) {
-    objectHovered.material.opacity = 1
-    objectHovered = null
-  }
-
-  if ( intersects.length > 0 ) {
-    var intersect = intersects[ 0 ].object !== brush ? intersects[ 0 ] : intersects[ 1 ]
-    if ( intersect ) {
-      if ( isShiftDown ) {
-        if ( intersect.object != plane ) {
-          objectHovered = intersect.object
-          objectHovered.material.opacity = 0.5
-          return
-        }
-      } else {
-        var normal = intersect.face.normal.clone()
-        normal.applyMatrix4( intersect.object.matrixRotationWorld )
-        var position = new THREE.Vector3().addVectors( intersect.point, normal )
-        brush.position.x = Math.floor( position.x / 50 ) * 50 + 25
-        brush.position.y = Math.floor( position.y / 50 ) * 50 + 25
-        brush.position.z = Math.floor( position.z / 50 ) * 50 + 25
-        return
-      }
-    }
-  }
-  brush.position.y = 2000
-}
-
-function onDocumentMouseMove( event ) {
-
-  event.preventDefault()
-  
-  if ( isMouseDown ) {
-
-    theta = - ( ( event.clientX - onMouseDownPosition.x ) * 0.5 ) + onMouseDownTheta
-    phi = ( ( event.clientY - onMouseDownPosition.y ) * 0.5 ) + onMouseDownPhi
-
-    phi = Math.min( 180, Math.max( 0, phi ) )
-
-    camera.position.x = radius * Math.sin( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
-    camera.position.y = radius * Math.sin( phi * Math.PI / 360 )
-    camera.position.z = radius * Math.cos( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
-    camera.updateMatrix()
-
-  }
-
-  mouse2D.x = ( event.clientX / window.innerWidth ) * 2 - 1
-  mouse2D.y = - ( event.clientY / window.innerHeight ) * 2 + 1
-
-  interact()
-}
-
-function onDocumentMouseDown( event ) {
-  event.preventDefault()
-  isMouseDown = true
-  onMouseDownTheta = theta
-  onMouseDownPhi = phi
-  onMouseDownPosition.x = event.clientX
-  onMouseDownPosition.y = event.clientY
-}
-
-function onDocumentMouseUp( event ) {
-  event.preventDefault()
-  isMouseDown = false
-  onMouseDownPosition.x = event.clientX - onMouseDownPosition.x
-  onMouseDownPosition.y = event.clientY - onMouseDownPosition.y
-  
-  if ( onMouseDownPosition.length() > 5 ) return
-  
-  var intersects = raycaster.intersectObjects( scene.children )
-  if ( intersects.length > 0 ) {
-
-    var intersect = intersects[ 0 ].object !== brush ? intersects[ 0 ] : intersects[ 1 ]
-
-    if ( intersect ) {
-
-      if ( isShiftDown ) {
-
-        if ( intersect.object != plane ) {
-
-          scene.remove( intersect.object );
-
-        }
-
-      } else {
-
-        var newMaterial = new THREE.MeshBasicMaterial({ color: colors[color], wireframe: true })
-        var voxel = new THREE.Mesh( cube, newMaterial )
-        voxel.position.copy(brush.position)
-        voxel.matrixAutoUpdate = false
-        voxel.updateMatrix()
-        scene.add( voxel )
-      }
-
-    }
-
-  }
-  
-  updateHash()
-  render()
-  interact()
-}
-
-function onDocumentKeyDown( event ) {
-
-  switch( event.keyCode ) {
-
-    case 16: isShiftDown = true; break
-    case 17: isCtrlDown = true; break
-
-  }
-
-}
-
-function onDocumentKeyUp( event ) {
-
-  switch( event.keyCode ) {
-
-    case 16: isShiftDown = false; break
-    case 17: isCtrlDown = false; break
-
-  }
-}
-
-
-function buildFromHash() {
-
-  var hash = window.location.hash.substr( 1 ),
-  version = hash.substr( 0, 2 );
-
-  if ( version == "A/" ) {
-
-    var current = { x: 0, y: 0, z: 0, c: 0 }
-    var data = decode( hash.substr( 2 ) );
-    var i = 0, l = data.length;
-
-    while ( i < l ) {
-
-      var code = data[ i ++ ].toString( 2 );
-
-      if ( code.charAt( 1 ) == "1" ) current.x += data[ i ++ ] - 32;
-      if ( code.charAt( 2 ) == "1" ) current.y += data[ i ++ ] - 32;
-      if ( code.charAt( 3 ) == "1" ) current.z += data[ i ++ ] - 32;
-      if ( code.charAt( 4 ) == "1" ) current.c += data[ i ++ ] - 32;
-      if ( code.charAt( 0 ) == "1" ) {
-        var voxel = new THREE.Mesh( cube, new THREE.MeshBasicMaterial({ color: colors[current.c], wireframe: true }));
-        voxel.position.x = current.x * 50 + 25;
-        voxel.position.y = current.y * 50 + 25;
-        voxel.position.z = current.z * 50 + 25;
-        voxel.overdraw = true;
-        scene.add( voxel );
-
-      }
-    }
-
-  } else {
-
-    var data = decode( hash );
-
-    for ( var i = 0; i < data.length; i += 4 ) {
-      
-      var voxel = new THREE.Mesh( cube, new THREE.MeshBasicMaterial({ color: colors[ data[ i + 3 ] ], wireframe: true }) );
-      voxel.position.x = ( data[ i ] - 20 ) * 25;
-      voxel.position.y = ( data[ i + 1 ] + 1 ) * 25;
-      voxel.position.z = ( data[ i + 2 ] - 20 ) * 25;
-      voxel.overdraw = true;
-      scene.add( voxel );
-
-    }
-
-  }
-
-  updateHash();
-
-}
-
-function updateHash() {
-
-  var data = [], voxels = [], code
-  var current = { x: 0, y: 0, z: 0, c: 0 }
-  var last = { x: 0, y: 0, z: 0, c: 0 }
-  for ( var i in scene.children ) {
-
-    var object = scene.children[ i ]
-
-    if ( object instanceof THREE.Mesh && object !== plane && object !== brush ) {
-
-      current.x = ( object.position.x - 25 ) / 50;
-      current.y = ( object.position.y - 25 ) / 50;
-      current.z = ( object.position.z - 25 ) / 50;
-
-      current.c = colors.indexOf( object.material.color.getHex() & 0xffffff );
-      voxels.push({x: current.x, y: current.y + 1, z: current.z , c: current.c + 1})
-      
-      code = 0;
-
-      if ( current.x != last.x ) code += 1000;
-      if ( current.y != last.y ) code += 100;
-      if ( current.z != last.z ) code += 10;
-      if ( current.c != last.c ) code += 1;
-
-      code += 10000;
-
-      data.push( parseInt( code, 2 ) );
-
-      if ( current.x != last.x ) {
-
-        data.push( current.x - last.x + 32 );
-        last.x = current.x;
-
-      }
-
-      if ( current.y != last.y ) {
-
-        data.push( current.y - last.y + 32 );
-        last.y = current.y;
-
-      }
-
-      if ( current.z != last.z ) {
-
-        data.push( current.z - last.z + 32 );
-        last.z = current.z;
-
-      }
-
-      if ( current.c != last.c ) {
-
-        data.push( current.c - last.c + 32 );
-        last.c = current.c;
-
-      }
-
-    }
-
-  }
-  if (voxels.length > 0) updateFunction(voxels)
-  data = encode( data );
-  window.location.hash = "A/" + data;
-}
-
-function updateFunction(voxels) {
-  var dimensions = getDimensions(voxels)
-  voxels = voxels.map(function(v) { return [v.x, v.y, v.z, v.c]})
-  var funcString = "var voxels = " + JSON.stringify(voxels) + "<br>"
-  funcString += 'var dimensions = ' + JSON.stringify(dimensions) + '<br>'
-  funcString += 'var size = game.cubeSize<br>'
-  funcString += 'voxels.map(function(voxel) {<br>' +
-    '&nbsp;&nbsp;game.setBlock({x: position.x + voxel[0] * size, y: position.y + voxel[1] * size, z: position.z + voxel[2] * size}, voxel[3])<br>' +
-  '})'
-  output.innerHTML = funcString
-}
-
-function getDimensions(voxels) {
-  var low = [0, 0, 0], high = [0, 0, 0]
-  voxels.map(function(voxel) {
-    if (voxel.x < low[0]) low[0] = voxel.x
-    if (voxel.x > high[0]) high[0] = voxel.x
-    if (voxel.y < low[1]) low[1] = voxel.y
-    if (voxel.y > high[1]) high[1] = voxel.y
-    if (voxel.z < low[2]) low[2] = voxel.z
-    if (voxel.z > high[2]) high[2] = voxel.z
-  })
-  return [ high[0]-low[0], high[1]-low[1], high[2]-low[2] ]
-}
-
-// https://gist.github.com/665235
-
-function decode( string ) {
-
-  var output = [];
-  string.split('').forEach( function ( v ) { output.push( "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".indexOf( v ) ); } );
-  return output;
-
-}
-
-function encode( array ) {
-
-  var output = "";
-  array.forEach( function ( v ) { output += "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".charAt( v ); } );
-  return output;
-
-}
-
-function save() {
-
-  window.open( renderer.domElement.toDataURL('image/png'), 'mywindow' )
-
-}
-
-function animate() {
-  render()
-}
-
-function render() {
-  camera.lookAt( target )
-  raycaster = projector.pickingRay( mouse2D.clone(), camera )
-  renderer.render( scene, camera )
-}
-});
-require("/index.js");
-})();
+})(require("__browserify_process"))
+},{"__browserify_process":5}]},{},[1]);
