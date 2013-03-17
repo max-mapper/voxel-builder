@@ -2,19 +2,48 @@ var THREE = window.three = require('three')
 var raf = require('raf')
 var container
 var output = document.querySelector('#output')
-var camera, scene, renderer, brush
+var camera, renderer, brush
 var projector, plane
 var mouse2D, mouse3D, raycaster, objectHovered
 var isShiftDown = false, isCtrlDown = false, isMouseDown = false
 var onMouseDownPosition = new THREE.Vector2(), onMouseDownPhi = 60, onMouseDownTheta = 45
 var radius = 1600, theta = 90, phi = 60
 target = new THREE.Vector3( 0, 200, 0 )
-var color = 0
-var colors = [ 0xDF1F1F, 0xDFAF1F, 0x80DF1F, 0x1FDF50, 0x1FDFDF, 0x1F4FDF, 0x7F1FDF, 0xDF1FAF, 0xEFEFEF, 0x303030 ]
+window.color = 0
+
+window.setWireframe = function(bool) {
+  scene.children
+  .filter(function(el) { return el.geometry instanceof three.CubeGeometry })
+  .map(function(mesh) { mesh.material.wireframe = bool })
+}
+
+window.showGrid = function(bool) {
+  grid.material.visible = bool
+}
+
+function v2h(value) {
+  value = parseInt(value).toString(16);
+  return value.length < 2 ? value + "0" : value;
+}
+function rgb2hex(rgb) {
+  if (rgb.match(/^rgb/) == null) return rgb;
+  var arr = rgb.match(/\d+/g);
+  return v2h(arr[0]) + v2h(arr[1]) + v2h(arr[2]);
+}
+
+function scale( x, fromLow, fromHigh, toLow, toHigh ) {
+  return ( x - fromLow ) * ( toHigh - toLow ) / ( fromHigh - fromLow ) + toLow
+}
+
+var colors = Array.prototype.slice.call(document.querySelectorAll('.color')).map(function(el) {
+  var rgb = getComputedStyle(el).backgroundColor
+  return rgb.match(/\d+/g).map(function(num) { return scale(num, 0, 255, 0, 1) })
+})
+
 var cube = new THREE.CubeGeometry( 50, 50, 50 )
 
 init()
-raf(window).on('data', animate)
+raf(window).on('data', render)
 
 function init() {
 
@@ -26,7 +55,7 @@ function init() {
   camera.position.y = radius * Math.sin( phi * Math.PI / 360 )
   camera.position.z = radius * Math.cos( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
 
-  scene = new THREE.Scene()
+  window.scene = new THREE.Scene()
 
   // Grid
 
@@ -48,6 +77,7 @@ function init() {
 
   var line = new THREE.Line( geometry, material )
   line.type = THREE.LinePieces
+  window.grid = line
   scene.add( line )
 
   // Plane
@@ -64,6 +94,7 @@ function init() {
   // Brush
   
   var cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true, wireframeLinewidth: 2 })
+  
   brush = new THREE.Mesh( cube, cubeMaterial)
   brush.position.y = 2000
   brush.overdraw = true
@@ -117,6 +148,7 @@ function onWindowResize() {
 }
 
 function interact() {
+  if (typeof raycaster === 'undefined') return
   var intersects = raycaster.intersectObjects( scene.children )
 
   if ( objectHovered ) {
@@ -202,10 +234,9 @@ function onDocumentMouseUp( event ) {
           scene.remove( intersect.object );
 
         }
-
       } else {
-
-        var newMaterial = new THREE.MeshBasicMaterial({ color: colors[color], wireframe: true })
+        var newMaterial = new THREE.MeshBasicMaterial({ vertexColors: THREE.FaceColors })
+        newMaterial.color.setRGB( colors[color][0], colors[color][1], colors[color][2] )
         var voxel = new THREE.Mesh( cube, newMaterial )
         voxel.position.copy(brush.position)
         voxel.matrixAutoUpdate = false
@@ -258,13 +289,15 @@ function buildFromHash() {
     while ( i < l ) {
 
       var code = data[ i ++ ].toString( 2 );
-
       if ( code.charAt( 1 ) == "1" ) current.x += data[ i ++ ] - 32;
       if ( code.charAt( 2 ) == "1" ) current.y += data[ i ++ ] - 32;
       if ( code.charAt( 3 ) == "1" ) current.z += data[ i ++ ] - 32;
       if ( code.charAt( 4 ) == "1" ) current.c += data[ i ++ ] - 32;
       if ( code.charAt( 0 ) == "1" ) {
-        var voxel = new THREE.Mesh( cube, new THREE.MeshBasicMaterial({ color: colors[current.c], wireframe: true }));
+        var material = new THREE.MeshBasicMaterial()
+        var col = colors[current.c] || colors[0]
+        material.color.setRGB( col[0], col[1], col[2] )
+        var voxel = new THREE.Mesh( cube, material);
         voxel.position.x = current.x * 50 + 25;
         voxel.position.y = current.y * 50 + 25;
         voxel.position.z = current.z * 50 + 25;
@@ -272,21 +305,6 @@ function buildFromHash() {
         scene.add( voxel );
 
       }
-    }
-
-  } else {
-
-    var data = decode( hash );
-
-    for ( var i = 0; i < data.length; i += 4 ) {
-      
-      var voxel = new THREE.Mesh( cube, new THREE.MeshBasicMaterial({ color: colors[ data[ i + 3 ] ], wireframe: true }) );
-      voxel.position.x = ( data[ i ] - 20 ) * 25;
-      voxel.position.y = ( data[ i + 1 ] + 1 ) * 25;
-      voxel.position.z = ( data[ i + 2 ] - 20 ) * 25;
-      voxel.overdraw = true;
-      scene.add( voxel );
-
     }
 
   }
@@ -309,8 +327,9 @@ function updateHash() {
       current.x = ( object.position.x - 25 ) / 50;
       current.y = ( object.position.y - 25 ) / 50;
       current.z = ( object.position.z - 25 ) / 50;
-
-      current.c = colors.indexOf( object.material.color.getHex() & 0xffffff );
+      
+      var colorString = ['r', 'g', 'b'].map(function(col) { return object.material.color[col] }).join('')
+      for (var i = 0; i < colors.length; i++) if (colors[i].join('') === colorString) current.c = i
       voxels.push({x: current.x, y: current.y + 1, z: current.z , c: current.c + 1})
       
       code = 0;
@@ -407,10 +426,6 @@ function save() {
 
   window.open( renderer.domElement.toDataURL('image/png'), 'mywindow' )
 
-}
-
-function animate() {
-  render()
 }
 
 function render() {
