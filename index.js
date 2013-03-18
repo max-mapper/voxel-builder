@@ -45,7 +45,7 @@ window.setShadows = function(bool) {
   if (bool) CubeMaterial = THREE.MeshLambertMaterial
   else CubeMaterial = THREE.MeshBasicMaterial
   scene.children
-    .filter(function(el) { return el.geometry instanceof three.CubeGeometry })
+    .filter(function(el) { return el !== brush && el.geometry instanceof three.CubeGeometry })
     .map(function(cube) { scene.remove(cube) })
   buildFromHash()
 }
