@@ -10,15 +10,44 @@ var onMouseDownPosition = new THREE.Vector2(), onMouseDownPhi = 60, onMouseDownT
 var radius = 1600, theta = 90, phi = 60
 target = new THREE.Vector3( 0, 200, 0 )
 window.color = 0
+var CubeMaterial = THREE.MeshLambertMaterial
+var wireframe = false
+
+$('.color-picker .btn').click(function(e) {
+  var target = $(e.currentTarget)
+  var idx = +target.find('.color').attr('data-color')
+  color = idx
+  brush.material.color.setRGB(colors[idx][0], colors[idx][1], colors[idx][2])
+})
+
+$('.toggle input').click(function(e) {
+  // setTimeout ensures this fires after the input value changes
+  setTimeout(function() {
+    var el = $(e.target).parent()
+    var state = !el.hasClass('toggle-off')
+    window[el.attr('data-action')](state)
+  }, 0)
+})
 
 window.setWireframe = function(bool) {
+  wireframe = bool
+  brush.material.wireframe = bool
   scene.children
-  .filter(function(el) { return el.geometry instanceof three.CubeGeometry })
-  .map(function(mesh) { mesh.material.wireframe = bool })
+    .filter(function(el) { return el.geometry instanceof three.CubeGeometry })
+    .map(function(mesh) { mesh.material.wireframe = bool })
 }
 
 window.showGrid = function(bool) {
   grid.material.visible = bool
+}
+
+window.setShadows = function(bool) {
+  if (bool) CubeMaterial = THREE.MeshLambertMaterial
+  else CubeMaterial = THREE.MeshBasicMaterial
+  scene.children
+    .filter(function(el) { return el.geometry instanceof three.CubeGeometry })
+    .map(function(cube) { scene.remove(cube) })
+  buildFromHash()
 }
 
 function v2h(value) {
@@ -92,32 +121,32 @@ function init() {
   mouse2D = new THREE.Vector3( 0, 10000, 0.5 )
 
   // Brush
+  var brushMaterial =  new CubeMaterial({wireframe: wireframe, opacity: 0.5 })
+  brushMaterial.color.setRGB(colors[0][0], colors[0][1], colors[0][2])
+  brush = new THREE.Mesh( cube, brushMaterial)
   
-  var cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true, wireframeLinewidth: 2 })
-  
-  brush = new THREE.Mesh( cube, cubeMaterial)
   brush.position.y = 2000
   brush.overdraw = true
   scene.add( brush )
 
   // Lights
 
-  var ambientLight = new THREE.AmbientLight( 0x606060 )
-  scene.add( ambientLight )
+  var ambientLight = new THREE.AmbientLight( 0x606060 );
+  scene.add( ambientLight );
 
-  var directionalLight = new THREE.DirectionalLight( 0xffffff )
-  directionalLight.position.x = Math.random() - 0.5
-  directionalLight.position.y = Math.random() - 0.5
-  directionalLight.position.z = Math.random() - 0.5
-  directionalLight.position.normalize()
-  scene.add( directionalLight )
+  var directionalLight = new THREE.DirectionalLight( 0xffffff );
+  directionalLight.position.x = Math.random() - 0.5;
+  directionalLight.position.y = Math.random() - 0.5;
+  directionalLight.position.z = Math.random() - 0.5;
+  directionalLight.position.normalize();
+  scene.add( directionalLight );
 
-  var directionalLight = new THREE.DirectionalLight( 0x808080 )
-  directionalLight.position.x = Math.random() - 0.5
-  directionalLight.position.y = Math.random() - 0.5
-  directionalLight.position.z = Math.random() - 0.5
-  directionalLight.position.normalize()
-  scene.add( directionalLight )
+  var directionalLight = new THREE.DirectionalLight( 0x808080 );
+  directionalLight.position.x = Math.random() - 0.5;
+  directionalLight.position.y = Math.random() - 0.5;
+  directionalLight.position.z = Math.random() - 0.5;
+  directionalLight.position.normalize();
+  scene.add( directionalLight );
 
   renderer = new THREE.CanvasRenderer()
   renderer.setSize( window.innerWidth, window.innerHeight )
@@ -235,7 +264,7 @@ function onDocumentMouseUp( event ) {
 
         }
       } else {
-        var newMaterial = new THREE.MeshBasicMaterial({ vertexColors: THREE.FaceColors })
+        var newMaterial = new CubeMaterial({ wireframe: wireframe, vertexColors: THREE.FaceColors })
         newMaterial.color.setRGB( colors[color][0], colors[color][1], colors[color][2] )
         var voxel = new THREE.Mesh( cube, newMaterial )
         voxel.position.copy(brush.position)
@@ -294,7 +323,7 @@ function buildFromHash() {
       if ( code.charAt( 3 ) == "1" ) current.z += data[ i ++ ] - 32;
       if ( code.charAt( 4 ) == "1" ) current.c += data[ i ++ ] - 32;
       if ( code.charAt( 0 ) == "1" ) {
-        var material = new THREE.MeshBasicMaterial()
+        var material = new CubeMaterial({ wireframe: wireframe })
         var col = colors[current.c] || colors[0]
         material.color.setRGB( col[0], col[1], col[2] )
         var voxel = new THREE.Mesh( cube, material);
@@ -374,7 +403,7 @@ function updateHash() {
     }
 
   }
-  if (voxels.length > 0) updateFunction(voxels)
+  // if (voxels.length > 0) updateFunction(voxels)
   data = encode( data );
   window.location.hash = "A/" + data;
 }

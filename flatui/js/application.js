@@ -1,22 +1,13 @@
 // Some general UI pack related JS
 
+window.$ = $
+
 $(function () {
     // Custom selects
     $("select").dropkick();
 });
 
 $(document).ready(function() {
-    $('.color-picker .btn').click(function(e) {
-      var target = $(e.currentTarget)
-      var idx = +target.find('.color').attr('data-color')
-      color = idx
-    })
-    
-    $('.toggle input').click(function(e) {
-      var el = $(e.target).parent()
-      var state = !el.hasClass('toggle-off')
-      window[el.attr('data-action')](state)
-    });
   
     // Todo list
     $(".todo li").click(function() {
