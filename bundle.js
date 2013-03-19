@@ -5,7 +5,7 @@ var output = document.querySelector('#output')
 var camera, renderer, brush
 var projector, plane
 var mouse2D, mouse3D, raycaster, objectHovered
-var isShiftDown = false, isCtrlDown = false, isMouseDown = false
+var isShiftDown = false, isCtrlDown = false, isMouseDown = false, isAltDown = false
 var onMouseDownPosition = new THREE.Vector2(), onMouseDownPhi = 60, onMouseDownTheta = 45
 var radius = 1600, theta = 90, phi = 60
 target = new THREE.Vector3( 0, 200, 0 )
@@ -48,6 +48,17 @@ window.setShadows = function(bool) {
     .filter(function(el) { return el !== brush && el.geometry instanceof three.CubeGeometry })
     .map(function(cube) { scene.remove(cube) })
   buildFromHash()
+}
+
+function addVoxel() {
+  if (brush.position.y === 2000) return
+  var newMaterial = new CubeMaterial({ wireframe: wireframe, vertexColors: THREE.FaceColors })
+  newMaterial.color.setRGB( colors[color][0], colors[color][1], colors[color][2] )
+  var voxel = new THREE.Mesh( cube, newMaterial )
+  voxel.position.copy(brush.position)
+  voxel.matrixAutoUpdate = false
+  voxel.updateMatrix()
+  scene.add( voxel )
 }
 
 function v2h(value) {
@@ -188,19 +199,39 @@ function interact() {
   if ( intersects.length > 0 ) {
     var intersect = intersects[ 0 ].object !== brush ? intersects[ 0 ] : intersects[ 1 ]
     if ( intersect ) {
-      if ( isShiftDown ) {
-        if ( intersect.object != plane ) {
+      var normal = intersect.face.normal.clone()
+      normal.applyMatrix4( intersect.object.matrixRotationWorld )
+      var position = new THREE.Vector3().addVectors( intersect.point, normal )
+      var newCube = [Math.floor( position.x / 50 ), Math.floor( position.y / 50 ), Math.floor( position.z / 50 )]
+      
+      function updateBrush() {
+        brush.position.x = Math.floor( position.x / 50 ) * 50 + 25
+        brush.position.y = Math.floor( position.y / 50 ) * 50 + 25
+        brush.position.z = Math.floor( position.z / 50 ) * 50 + 25
+      }
+      
+      if (isAltDown) {
+        if (!brush.currentCube) brush.currentCube = newCube
+        if (brush.currentCube.join('') !== newCube.join('')) {
+          if ( isShiftDown ) {
+            if ( intersect.object !== plane ) {
+              scene.remove( intersect.object )
+            }
+          } else {
+            addVoxel()
+          }
+        }
+        updateBrush()
+        updateHash()
+        return brush.currentCube = newCube
+      } else if ( isShiftDown ) {
+        if ( intersect.object !== plane ) {
           objectHovered = intersect.object
           objectHovered.material.opacity = 0.5
           return
         }
       } else {
-        var normal = intersect.face.normal.clone()
-        normal.applyMatrix4( intersect.object.matrixRotationWorld )
-        var position = new THREE.Vector3().addVectors( intersect.point, normal )
-        brush.position.x = Math.floor( position.x / 50 ) * 50 + 25
-        brush.position.y = Math.floor( position.y / 50 ) * 50 + 25
-        brush.position.z = Math.floor( position.z / 50 ) * 50 + 25
+        updateBrush()
         return
       }
     }
@@ -264,13 +295,7 @@ function onDocumentMouseUp( event ) {
 
         }
       } else {
-        var newMaterial = new CubeMaterial({ wireframe: wireframe, vertexColors: THREE.FaceColors })
-        newMaterial.color.setRGB( colors[color][0], colors[color][1], colors[color][2] )
-        var voxel = new THREE.Mesh( cube, newMaterial )
-        voxel.position.copy(brush.position)
-        voxel.matrixAutoUpdate = false
-        voxel.updateMatrix()
-        scene.add( voxel )
+        addVoxel()
       }
 
     }
@@ -283,12 +308,13 @@ function onDocumentMouseUp( event ) {
 }
 
 function onDocumentKeyDown( event ) {
-
+  
   switch( event.keyCode ) {
-
+    
     case 16: isShiftDown = true; break
     case 17: isCtrlDown = true; break
-
+    case 18: isAltDown = true; break
+    
   }
 
 }
@@ -299,6 +325,7 @@ function onDocumentKeyUp( event ) {
 
     case 16: isShiftDown = false; break
     case 17: isCtrlDown = false; break
+    case 18: isAltDown = false; break
 
   }
 }
