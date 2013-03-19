@@ -10,8 +10,8 @@ var onMouseDownPosition = new THREE.Vector2(), onMouseDownPhi = 60, onMouseDownT
 var radius = 1600, theta = 90, phi = 60
 target = new THREE.Vector3( 0, 200, 0 )
 window.color = 0
-var CubeMaterial = THREE.MeshLambertMaterial
-var wireframe = false
+var CubeMaterial = THREE.MeshBasicMaterial
+var wireframe = true, fill = true
 
 $('.color-picker .btn').click(function(e) {
   var target = $(e.currentTarget)
@@ -31,10 +31,16 @@ $('.toggle input').click(function(e) {
 
 window.setWireframe = function(bool) {
   wireframe = bool
-  brush.material.wireframe = bool
   scene.children
-    .filter(function(el) { return el.geometry instanceof three.CubeGeometry })
-    .map(function(mesh) { mesh.material.wireframe = bool })
+    .filter(function(el) { return el.isVoxel })
+    .map(function(mesh) { mesh.children[1].visible = bool })
+}
+
+window.setFill = function(bool) {
+  fill = bool
+  scene.children
+    .filter(function(el) { return el.isVoxel })
+    .map(function(mesh) { mesh.children[0].material.visible = bool })
 }
 
 window.showGrid = function(bool) {
@@ -45,16 +51,21 @@ window.setShadows = function(bool) {
   if (bool) CubeMaterial = THREE.MeshLambertMaterial
   else CubeMaterial = THREE.MeshBasicMaterial
   scene.children
-    .filter(function(el) { return el !== brush && el.geometry instanceof three.CubeGeometry })
+    .filter(function(el) { return el !== brush && el.isVoxel })
     .map(function(cube) { scene.remove(cube) })
   buildFromHash()
 }
 
 function addVoxel() {
   if (brush.position.y === 2000) return
-  var newMaterial = new CubeMaterial({ wireframe: wireframe, vertexColors: THREE.FaceColors })
-  newMaterial.color.setRGB( colors[color][0], colors[color][1], colors[color][2] )
-  var voxel = new THREE.Mesh( cube, newMaterial )
+  var materials = [
+    new CubeMaterial( { vertexColors: THREE.VertexColors } ),
+    new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } )
+  ]
+  materials[0].color.setRGB( colors[color][0], colors[color][1], colors[color][2] )
+  var voxel = THREE.SceneUtils.createMultiMaterialObject( cube, materials )
+  voxel.isVoxel = true
+  voxel.overdraw = true
   voxel.position.copy(brush.position)
   voxel.matrixAutoUpdate = false
   voxel.updateMatrix()
@@ -62,13 +73,13 @@ function addVoxel() {
 }
 
 function v2h(value) {
-  value = parseInt(value).toString(16);
-  return value.length < 2 ? value + "0" : value;
+  value = parseInt(value).toString(16)
+  return value.length < 2 ? value + "0" : value
 }
 function rgb2hex(rgb) {
-  if (rgb.match(/^rgb/) == null) return rgb;
-  var arr = rgb.match(/\d+/g);
-  return v2h(arr[0]) + v2h(arr[1]) + v2h(arr[2]);
+  if (rgb.match(/^rgb/) == null) return rgb
+  var arr = rgb.match(/\d+/g)
+  return v2h(arr[0]) + v2h(arr[1]) + v2h(arr[2])
 }
 
 function scale( x, fromLow, fromHigh, toLow, toHigh ) {
@@ -132,32 +143,35 @@ function init() {
   mouse2D = new THREE.Vector3( 0, 10000, 0.5 )
 
   // Brush
-  var brushMaterial =  new CubeMaterial({wireframe: wireframe, opacity: 0.5 })
-  brushMaterial.color.setRGB(colors[0][0], colors[0][1], colors[0][2])
-  brush = new THREE.Mesh( cube, brushMaterial)
-  
+  var brushMaterials = [
+    new CubeMaterial( { vertexColors: THREE.VertexColors, opacity: 0.5 } ),
+    new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } )
+  ]
+  brushMaterials[0].color.setRGB(colors[0][0], colors[0][1], colors[0][2])
+  brush = THREE.SceneUtils.createMultiMaterialObject( cube, brushMaterials )
+  brush.isBrush = true
   brush.position.y = 2000
   brush.overdraw = true
   scene.add( brush )
 
   // Lights
 
-  var ambientLight = new THREE.AmbientLight( 0x606060 );
-  scene.add( ambientLight );
+  var ambientLight = new THREE.AmbientLight( 0x606060 )
+  scene.add( ambientLight )
 
-  var directionalLight = new THREE.DirectionalLight( 0xffffff );
-  directionalLight.position.x = Math.random() - 0.5;
-  directionalLight.position.y = Math.random() - 0.5;
-  directionalLight.position.z = Math.random() - 0.5;
-  directionalLight.position.normalize();
-  scene.add( directionalLight );
+  var directionalLight = new THREE.DirectionalLight( 0xffffff )
+  directionalLight.position.x = Math.random() - 0.5
+  directionalLight.position.y = Math.random() - 0.5
+  directionalLight.position.z = Math.random() - 0.5
+  directionalLight.position.normalize()
+  scene.add( directionalLight )
 
-  var directionalLight = new THREE.DirectionalLight( 0x808080 );
-  directionalLight.position.x = Math.random() - 0.5;
-  directionalLight.position.y = Math.random() - 0.5;
-  directionalLight.position.z = Math.random() - 0.5;
-  directionalLight.position.normalize();
-  scene.add( directionalLight );
+  var directionalLight = new THREE.DirectionalLight( 0x808080 )
+  directionalLight.position.x = Math.random() - 0.5
+  directionalLight.position.y = Math.random() - 0.5
+  directionalLight.position.z = Math.random() - 0.5
+  directionalLight.position.normalize()
+  scene.add( directionalLight )
 
   renderer = new THREE.CanvasRenderer()
   renderer.setSize( window.innerWidth, window.innerHeight )
@@ -187,53 +201,60 @@ function onWindowResize() {
 
 }
 
+function getIntersecting() {
+  var intersectable = scene.children.map(function(c) { if (c.isVoxel) return c.children[0]; return c; })
+  var intersections = raycaster.intersectObjects( intersectable )
+  if (intersections.length > 0) {
+    var intersect = intersections[ 0 ].object.isBrush ? intersections[ 1 ] : intersections[ 0 ]
+    return intersect
+  }
+}
+
 function interact() {
   if (typeof raycaster === 'undefined') return
-  var intersects = raycaster.intersectObjects( scene.children )
 
   if ( objectHovered ) {
     objectHovered.material.opacity = 1
     objectHovered = null
   }
+  
+  var intersect = getIntersecting()
 
-  if ( intersects.length > 0 ) {
-    var intersect = intersects[ 0 ].object !== brush ? intersects[ 0 ] : intersects[ 1 ]
-    if ( intersect ) {
-      var normal = intersect.face.normal.clone()
-      normal.applyMatrix4( intersect.object.matrixRotationWorld )
-      var position = new THREE.Vector3().addVectors( intersect.point, normal )
-      var newCube = [Math.floor( position.x / 50 ), Math.floor( position.y / 50 ), Math.floor( position.z / 50 )]
-      
-      function updateBrush() {
-        brush.position.x = Math.floor( position.x / 50 ) * 50 + 25
-        brush.position.y = Math.floor( position.y / 50 ) * 50 + 25
-        brush.position.z = Math.floor( position.z / 50 ) * 50 + 25
-      }
-      
-      if (isAltDown) {
-        if (!brush.currentCube) brush.currentCube = newCube
-        if (brush.currentCube.join('') !== newCube.join('')) {
-          if ( isShiftDown ) {
-            if ( intersect.object !== plane ) {
-              scene.remove( intersect.object )
-            }
-          } else {
-            addVoxel()
+  if ( intersect ) {
+    var normal = intersect.face.normal.clone()
+    normal.applyMatrix4( intersect.object.matrixRotationWorld )
+    var position = new THREE.Vector3().addVectors( intersect.point, normal )
+    var newCube = [Math.floor( position.x / 50 ), Math.floor( position.y / 50 ), Math.floor( position.z / 50 )]
+    
+    function updateBrush() {
+      brush.position.x = Math.floor( position.x / 50 ) * 50 + 25
+      brush.position.y = Math.floor( position.y / 50 ) * 50 + 25
+      brush.position.z = Math.floor( position.z / 50 ) * 50 + 25
+    }
+    
+    if (isAltDown) {
+      if (!brush.currentCube) brush.currentCube = newCube
+      if (brush.currentCube.join('') !== newCube.join('')) {
+        if ( isShiftDown ) {
+          if ( intersect.object !== plane ) {
+            scene.remove( intersect.object.parent )
           }
+        } else {
+          addVoxel()
         }
-        updateBrush()
-        updateHash()
-        return brush.currentCube = newCube
-      } else if ( isShiftDown ) {
-        if ( intersect.object !== plane ) {
-          objectHovered = intersect.object
-          objectHovered.material.opacity = 0.5
-          return
-        }
-      } else {
-        updateBrush()
+      }
+      updateBrush()
+      updateHash()
+      return brush.currentCube = newCube
+    } else if ( isShiftDown ) {
+      if ( intersect.object !== plane ) {
+        objectHovered = intersect.object
+        objectHovered.material.opacity = 0.5
         return
       }
+    } else {
+      updateBrush()
+      return
     }
   }
   brush.position.y = 2000
@@ -280,27 +301,23 @@ function onDocumentMouseUp( event ) {
   
   if ( onMouseDownPosition.length() > 5 ) return
   
-  var intersects = raycaster.intersectObjects( scene.children )
-  if ( intersects.length > 0 ) {
+  var intersect = getIntersecting()
+  
+  if ( intersect ) {
 
-    var intersect = intersects[ 0 ].object !== brush ? intersects[ 0 ] : intersects[ 1 ]
+    if ( isShiftDown ) {
 
-    if ( intersect ) {
+      if ( intersect.object != plane ) {
 
-      if ( isShiftDown ) {
+        scene.remove( intersect.object.parent )
 
-        if ( intersect.object != plane ) {
-
-          scene.remove( intersect.object );
-
-        }
-      } else {
-        addVoxel()
       }
-
+    } else {
+      addVoxel()
     }
 
   }
+
   
   updateHash()
   render()
@@ -334,38 +351,41 @@ function onDocumentKeyUp( event ) {
 function buildFromHash() {
 
   var hash = window.location.hash.substr( 1 ),
-  version = hash.substr( 0, 2 );
+  version = hash.substr( 0, 2 )
 
   if ( version == "A/" ) {
 
     var current = { x: 0, y: 0, z: 0, c: 0 }
-    var data = decode( hash.substr( 2 ) );
-    var i = 0, l = data.length;
+    var data = decode( hash.substr( 2 ) )
+    var i = 0, l = data.length
 
     while ( i < l ) {
 
-      var code = data[ i ++ ].toString( 2 );
-      if ( code.charAt( 1 ) == "1" ) current.x += data[ i ++ ] - 32;
-      if ( code.charAt( 2 ) == "1" ) current.y += data[ i ++ ] - 32;
-      if ( code.charAt( 3 ) == "1" ) current.z += data[ i ++ ] - 32;
-      if ( code.charAt( 4 ) == "1" ) current.c += data[ i ++ ] - 32;
+      var code = data[ i ++ ].toString( 2 )
+      if ( code.charAt( 1 ) == "1" ) current.x += data[ i ++ ] - 32
+      if ( code.charAt( 2 ) == "1" ) current.y += data[ i ++ ] - 32
+      if ( code.charAt( 3 ) == "1" ) current.z += data[ i ++ ] - 32
+      if ( code.charAt( 4 ) == "1" ) current.c += data[ i ++ ] - 32
       if ( code.charAt( 0 ) == "1" ) {
-        var material = new CubeMaterial({ wireframe: wireframe })
+        var materials = [
+          new CubeMaterial( { vertexColors: THREE.VertexColors } ),
+          new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } )
+        ]
         var col = colors[current.c] || colors[0]
-        material.color.setRGB( col[0], col[1], col[2] )
-        var voxel = new THREE.Mesh( cube, material);
-        voxel.position.x = current.x * 50 + 25;
-        voxel.position.y = current.y * 50 + 25;
-        voxel.position.z = current.z * 50 + 25;
-        voxel.overdraw = true;
-        scene.add( voxel );
-
+        materials[0].color.setRGB( col[0], col[1], col[2] )
+        var voxel = THREE.SceneUtils.createMultiMaterialObject( cube, materials )
+        voxel.isVoxel = true
+        voxel.position.x = current.x * 50 + 25
+        voxel.position.y = current.y * 50 + 25
+        voxel.position.z = current.z * 50 + 25
+        voxel.overdraw = true
+        scene.add( voxel )
       }
     }
 
   }
 
-  updateHash();
+  updateHash()
 
 }
 
@@ -378,52 +398,52 @@ function updateHash() {
 
     var object = scene.children[ i ]
 
-    if ( object instanceof THREE.Mesh && object !== plane && object !== brush ) {
+    if ( object.isVoxel && object !== plane && object !== brush ) {
 
-      current.x = ( object.position.x - 25 ) / 50;
-      current.y = ( object.position.y - 25 ) / 50;
-      current.z = ( object.position.z - 25 ) / 50;
+      current.x = ( object.position.x - 25 ) / 50
+      current.y = ( object.position.y - 25 ) / 50
+      current.z = ( object.position.z - 25 ) / 50
       
-      var colorString = ['r', 'g', 'b'].map(function(col) { return object.material.color[col] }).join('')
+      var colorString = ['r', 'g', 'b'].map(function(col) { return object.children[0].material.color[col] }).join('')
       for (var i = 0; i < colors.length; i++) if (colors[i].join('') === colorString) current.c = i
       voxels.push({x: current.x, y: current.y + 1, z: current.z , c: current.c + 1})
       
-      code = 0;
+      code = 0
 
-      if ( current.x != last.x ) code += 1000;
-      if ( current.y != last.y ) code += 100;
-      if ( current.z != last.z ) code += 10;
-      if ( current.c != last.c ) code += 1;
+      if ( current.x != last.x ) code += 1000
+      if ( current.y != last.y ) code += 100
+      if ( current.z != last.z ) code += 10
+      if ( current.c != last.c ) code += 1
 
-      code += 10000;
+      code += 10000
 
-      data.push( parseInt( code, 2 ) );
+      data.push( parseInt( code, 2 ) )
 
       if ( current.x != last.x ) {
 
-        data.push( current.x - last.x + 32 );
-        last.x = current.x;
+        data.push( current.x - last.x + 32 )
+        last.x = current.x
 
       }
 
       if ( current.y != last.y ) {
 
-        data.push( current.y - last.y + 32 );
-        last.y = current.y;
+        data.push( current.y - last.y + 32 )
+        last.y = current.y
 
       }
 
       if ( current.z != last.z ) {
 
-        data.push( current.z - last.z + 32 );
-        last.z = current.z;
+        data.push( current.z - last.z + 32 )
+        last.z = current.z
 
       }
 
       if ( current.c != last.c ) {
 
-        data.push( current.c - last.c + 32 );
-        last.c = current.c;
+        data.push( current.c - last.c + 32 )
+        last.c = current.c
 
       }
 
@@ -431,8 +451,8 @@ function updateHash() {
 
   }
   // if (voxels.length > 0) updateFunction(voxels)
-  data = encode( data );
-  window.location.hash = "A/" + data;
+  data = encode( data )
+  window.location.hash = "A/" + data
 }
 
 function updateFunction(voxels) {
@@ -464,17 +484,17 @@ function getDimensions(voxels) {
 
 function decode( string ) {
 
-  var output = [];
-  string.split('').forEach( function ( v ) { output.push( "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".indexOf( v ) ); } );
-  return output;
+  var output = []
+  string.split('').forEach( function ( v ) { output.push( "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".indexOf( v ) ) } )
+  return output
 
 }
 
 function encode( array ) {
 
-  var output = "";
-  array.forEach( function ( v ) { output += "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".charAt( v ); } );
-  return output;
+  var output = ""
+  array.forEach( function ( v ) { output += "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".charAt( v ) } )
+  return output
 
 }
 
