@@ -1,12 +1,5 @@
 // Some general UI pack related JS
 
-window.$ = $
-
-$(function () {
-    // Custom selects
-    $("select").dropkick();
-});
-
 $(document).ready(function() {
   
     // Todo list

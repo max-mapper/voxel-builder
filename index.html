@@ -18,7 +18,11 @@
       .color.three { background: #34495E; }
       .color.four { background: #E67E22; }
       .color.five { background: #ECF0F1; }
-      #instructions { width: 250px; position: absolute; top: 10px; right: 10px; }
+      .demo-text-box { margin-right: 24px; }
+      .demo-panel-title { margin-bottom: 10px !important; padding-top: 10px !important; }
+      #instructions { width: 250px; position: absolute; top: 0px; right: 0px; }
+      .instructions { background: white; border: 2px solid #1abc9c; border-radius: 6px; padding: 6px 1px 1px 6px; overflow-y: auto; text-align: left;}
+      .actionsMenu { width: 224px; }
     </style>
     
     <link href="flatui/css/bootstrap.css" rel="stylesheet">
@@ -28,6 +32,13 @@
   <body>
     <div id="instructions">
       <h3 class="demo-panel-title">Voxel Painter</h3>
+      
+      <select class="actionsMenu" value="Actions" tabindex="1">
+        <option value="noop" selected="selected">Actions</option>
+        <option value="loadExample">Load Example Bunny</option>
+        <option value="export">Export</option>
+        <option value="reset">Reset</option>
+      </select>
 
       <div class="share mrl">
         <ul>
@@ -84,12 +95,15 @@
         </div>
       </div>
       
-      <div class="demo-text-box prl mrl">
+      <div class="demo-text-box instructions">
         <p><strong>click + drag</strong> to adjust angle.</p>
         <p><strong>click</strong> to place a voxel.</p>
         <p><strong>shift</strong> to delete a voxel.</p>
         <p><strong>alt</strong> to bulk edit voxels.</p>
-        <p>Report bugs or suggest features <a href="https://github.com/maxogden/voxel-painter">on Github</a>.</p>
+        <p><strong>1-5</strong> to change color.</p>
+        <p>
+        </p>
+        <p>Report bugs <a href="https://github.com/maxogden/voxel-painter">on Github</a>.</p>
       </div>
       
      <div id="output"></div>
