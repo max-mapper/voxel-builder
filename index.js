@@ -17,7 +17,7 @@ $('.color-picker .btn').click(function(e) {
   var target = $(e.currentTarget)
   var idx = +target.find('.color').attr('data-color')
   color = idx
-  brush.material.color.setRGB(colors[idx][0], colors[idx][1], colors[idx][2])
+  brush.children[0].material.color.setRGB(colors[idx][0], colors[idx][1], colors[idx][2])
 })
 
 $('.toggle input').click(function(e) {
