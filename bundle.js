@@ -1,7 +1,6 @@
 ;(function(e,t,n,r){function i(r){if(!n[r]){if(!t[r]){if(e)return e(r);throw new Error("Cannot find module '"+r+"'")}var s=n[r]={exports:{}};t[r][0](function(e){var n=t[r][1][e];return i(n?n:e)},s,s.exports)}return n[r].exports}for(var s=0;s<r.length;s++)i(r[s]);return i})(typeof require!=="undefined"&&require,{1:[function(require,module,exports){var THREE = window.three = require('three')
 var raf = require('raf')
 var container
-var output = document.querySelector('#output')
 var camera, renderer, brush
 var projector, plane
 var mouse2D, mouse3D, raycaster, objectHovered
@@ -28,6 +27,40 @@ $('.toggle input').click(function(e) {
     window[el.attr('data-action')](state)
   }, 0)
 })
+
+var actionsMenu = $(".actionsMenu")
+actionsMenu.dropkick({
+  change: function(value, label) {
+    if (value === 'noop') return
+    if (value in window) window[value]()
+    setTimeout(function() {
+      actionsMenu.dropkick('reset')
+    }, 0)
+  }
+})
+
+// bunny
+window.loadExample = function() {
+  window.location.replace( '#A/bfhkSfdihfShaefShahfShahhYfYfYfSfSfSfYhYhYhahjSdechjYhYhYhadfQUhchfYhYhSfYdQYhYhaefQYhYhYhYhSjcchQYhYhYhYhSfSfWehSfUhShecheQYhYhYhYhachYhYhafhYhahfShXdfhShcihYaVhfYmfbihhQYhYhYhaddQShahfYhYhYhShYfYfYfafhQUhchfYhYhYhShechdUhUhcheUhUhcheUhUhcheUhUhcheUhUhWehUhUhcfeUhUhcfeUhUhcfeUhUhcfeUhUhehehUhUhcheUhUhcheUhUhcheUhUhWehUhUhcfeUhUhcfeUhUhcfeUhUhcfeUhUhWffUhWheQYhYhYhYhachQYiYhYhShYfYfYfYfShYhYhYhYhadeakiQSfSfSfUfShShShUfSfSfSfUfShShShUfSfSfSfcakQShShWfeQShShWeeQUhWfhUhShUfWjhQUfUfUfWfdQShShShWkhQUfUfUfchjQYhYhYhYhUfYfYfYeYhUfYhYhcifQYfYfYfYeQcffQYhYhYiYiYfcdhckjUfUfZfeYcciefhleiYhYcYhcfhYhcfhYhcifYhcfhYhcfhYhYcYh')
+  buildFromHash()
+}
+
+window.export = function() {
+  var voxels = updateHash()
+  if (voxels.length === 0) return
+  window.prompt ("Copy to clipboard: Ctrl+C, Enter", exportFunction(voxels))
+}
+
+window.reset = function() {
+  window.location.replace('#/')
+  scene.children
+    .filter(function(el) { return el.isVoxel })
+    .map(function(mesh) { scene.remove(mesh) })
+}
+
+window.setColor = function(idx) {
+  $('i[data-color="' + idx + '"]').click()
+}
 
 window.setWireframe = function(bool) {
   wireframe = bool
@@ -327,7 +360,16 @@ function onDocumentMouseUp( event ) {
 function onDocumentKeyDown( event ) {
   
   switch( event.keyCode ) {
-    
+    case 49: setColor(0); break
+    case 50: setColor(1); break
+    case 51: setColor(2); break
+    case 52: setColor(3); break
+    case 53: setColor(4); break
+    case 54: setColor(5); break
+    case 55: setColor(6); break
+    case 56: setColor(7); break
+    case 57: setColor(8); break
+    case 48: setColor(9); break
     case 16: isShiftDown = true; break
     case 17: isCtrlDown = true; break
     case 18: isAltDown = true; break
@@ -450,21 +492,21 @@ function updateHash() {
     }
 
   }
-  // if (voxels.length > 0) updateFunction(voxels)
   data = encode( data )
-  window.location.hash = "A/" + data
+  window.location.replace("#A/" + data)
+  return voxels
 }
 
-function updateFunction(voxels) {
+function exportFunction(voxels) {
   var dimensions = getDimensions(voxels)
   voxels = voxels.map(function(v) { return [v.x, v.y, v.z, v.c]})
-  var funcString = "var voxels = " + JSON.stringify(voxels) + "<br>"
-  funcString += 'var dimensions = ' + JSON.stringify(dimensions) + '<br>'
-  funcString += 'var size = game.cubeSize<br>'
-  funcString += 'voxels.map(function(voxel) {<br>' +
-    '&nbsp;&nbsp;game.setBlock({x: position.x + voxel[0] * size, y: position.y + voxel[1] * size, z: position.z + voxel[2] * size}, voxel[3])<br>' +
-  '})'
-  output.innerHTML = funcString
+  var funcString = "var voxels = " + JSON.stringify(voxels) + ";"
+  funcString += 'var dimensions = ' + JSON.stringify(dimensions) + ';'
+  funcString += 'var size = game.cubeSize;'
+  funcString += 'voxels.map(function(voxel) {' +
+    'game.setBlock({x: position.x + voxel[0] * size, y: position.y + voxel[1] * size, z: position.z + voxel[2] * size}, voxel[3])' +
+  '});'
+  return funcString
 }
 
 function getDimensions(voxels) {
