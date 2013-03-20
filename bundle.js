@@ -129,11 +129,22 @@ var cube = new THREE.CubeGeometry( 50, 50, 50 )
 init()
 raf(window).on('data', render)
 
+function zoom(delta) {
+  var origin = {x: 0, y: 0, z: 0}
+  var distance = camera.position.distanceTo(origin)
+  var tooFar = distance  > 2000
+  var tooClose = distance < 300
+  if (delta > 0 && tooFar) return
+  if (delta < 0 && tooClose) return
+  radius = distance // for mouse drag calculations to be correct
+  camera.translateZ( delta )
+}
+
 function init() {
 
   container = document.createElement( 'div' )
   document.body.appendChild( container )
-
+  
   camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 10000 )
   camera.position.x = radius * Math.sin( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
   camera.position.y = radius * Math.sin( phi * Math.PI / 360 )
@@ -216,6 +227,12 @@ function init() {
   renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false )
   document.addEventListener( 'keydown', onDocumentKeyDown, false )
   document.addEventListener( 'keyup', onDocumentKeyUp, false )
+  window.addEventListener('DOMMouseScroll', mousewheel, false);
+  window.addEventListener('mousewheel', mousewheel, false);
+  
+  function mousewheel( event ) {
+    zoom(event.wheelDeltaY)
+  }
 
   //
 
@@ -358,8 +375,9 @@ function onDocumentMouseUp( event ) {
 }
 
 function onDocumentKeyDown( event ) {
-  
   switch( event.keyCode ) {
+    case 189: zoom(100); break
+    case 187: zoom(-100); break
     case 49: setColor(0); break
     case 50: setColor(1); break
     case 51: setColor(2); break
