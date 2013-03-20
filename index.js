@@ -234,8 +234,6 @@ function init() {
     zoom(event.wheelDeltaY)
   }
 
-  //
-
   window.addEventListener( 'resize', onWindowResize, false )
   
   if ( window.location.hash ) buildFromHash()
