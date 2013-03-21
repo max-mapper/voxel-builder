@@ -32,7 +32,8 @@ module.exports = function() {
   exports.export = function() {
     var voxels = updateHash()
     if (voxels.length === 0) return
-    window.prompt ("Copy to clipboard: Ctrl+C, Enter", exportFunction(voxels))
+    console.log(exportFunction(voxels))
+    window.alert("An export script has been logged to your console. PNG export coming soon.")
   }
 
   exports.reset = function() {
@@ -563,12 +564,11 @@ module.exports = function() {
 
   function exportFunction(voxels) {
     var dimensions = getDimensions(voxels)
-    voxels = voxels.map(function(v) { return [v.x, v.y, v.z, v.c]})
+    voxels = voxels.map(function(v) { return [v.x, v.y, v.z, v.c + 1]})
     var funcString = "var voxels = " + JSON.stringify(voxels) + ";"
     funcString += 'var dimensions = ' + JSON.stringify(dimensions) + ';'
-    funcString += 'var size = game.cubeSize;'
     funcString += 'voxels.map(function(voxel) {' +
-      'game.setBlock({x: position.x + voxel[0] * size, y: position.y + voxel[1] * size, z: position.z + voxel[2] * size}, voxel[3])' +
+      'game.setBlock([position.x + voxel[0], position.y + voxel[1], position.z + voxel[2]], voxel[3])' +
     '});'
     return funcString
   }
