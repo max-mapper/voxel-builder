@@ -1,5 +1,6 @@
 var THREE = require('three')
 var raf = require('raf')
+var lsb = require('lsb')
 
 module.exports = function() {
   var container
@@ -571,6 +572,32 @@ module.exports = function() {
       'game.setBlock([position.x + voxel[0], position.y + voxel[1], position.z + voxel[2]], voxel[3])' +
     '});'
     return funcString
+  }
+
+  function exportImage(voxels) {
+    var canvas = document.createElement('canvas')
+    var ctx = canvas.getContext('2d')
+    var source = renderer.domElement
+    var width = canvas.width = source.width
+    var height = canvas.height = source.height
+
+    ctx.fillStyle = 'rgb(255,255,255)'
+    ctx.fillRect(0, 0, width, height)
+    ctx.drawImage(source, 0, 0)
+
+    var imageData = ctx.getImageData(0, 0, width, height)
+
+    lsb.encode(imageData.data, encode(voxels), function(idx) {
+      // skips every fourth byte, i.e. leave the alpha channel
+      // alone and only change RGB
+      return idx + (idx/3) | 0
+    })
+
+    ctx.putImageData(imageData, 0, 0)
+
+    var image = new Image
+    image.src = canvas.toDataURL()
+    return image
   }
 
   function getDimensions(voxels) {
