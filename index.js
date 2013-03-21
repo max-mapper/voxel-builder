@@ -33,7 +33,7 @@ module.exports = function() {
   exports.export = function() {
     var voxels = updateHash()
     if (voxels.length === 0) return
-    window.open(exportImage(voxels).src, 'voxel-painter-window')
+    window.open(exportImage().src, 'voxel-painter-window')
   }
 
   exports.reset = function() {
@@ -581,7 +581,7 @@ module.exports = function() {
     return idx + (idx/3) | 0
   }
 
-  function exportImage(voxels) {
+  function exportImage() {
     var canvas = document.createElement('canvas')
     var ctx = canvas.getContext('2d')
     var source = renderer.domElement
