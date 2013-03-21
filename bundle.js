@@ -1,575 +1,707 @@
-;(function(e,t,n,r){function i(r){if(!n[r]){if(!t[r]){if(e)return e(r);throw new Error("Cannot find module '"+r+"'")}var s=n[r]={exports:{}};t[r][0](function(e){var n=t[r][1][e];return i(n?n:e)},s,s.exports)}return n[r].exports}for(var s=0;s<r.length;s++)i(r[s]);return i})(typeof require!=="undefined"&&require,{1:[function(require,module,exports){var THREE = window.three = require('three')
+;(function(e,t,n,r){function i(r){if(!n[r]){if(!t[r]){if(e)return e(r);throw new Error("Cannot find module '"+r+"'")}var s=n[r]={exports:{}};t[r][0](function(e){var n=t[r][1][e];return i(n?n:e)},s,s.exports)}return n[r].exports}for(var s=0;s<r.length;s++)i(r[s]);return i})(typeof require!=="undefined"&&require,{1:[function(require,module,exports){require('./')()
+},{"./":2}],2:[function(require,module,exports){var THREE = require('three')
 var raf = require('raf')
-var container
-var camera, renderer, brush
-var projector, plane
-var mouse2D, mouse3D, raycaster, objectHovered
-var isShiftDown = false, isCtrlDown = false, isMouseDown = false, isAltDown = false
-var onMouseDownPosition = new THREE.Vector2(), onMouseDownPhi = 60, onMouseDownTheta = 45
-var radius = 1600, theta = 90, phi = 60
-target = new THREE.Vector3( 0, 200, 0 )
-window.color = 0
-var CubeMaterial = THREE.MeshBasicMaterial
-var wireframe = true, fill = true
+var lsb = require('lsb')
 
-$('.color-picker .btn').click(function(e) {
-  var target = $(e.currentTarget)
-  var idx = +target.find('.color').attr('data-color')
-  color = idx
-  brush.children[0].material.color.setRGB(colors[idx][0], colors[idx][1], colors[idx][2])
-})
-
-$('.toggle input').click(function(e) {
-  // setTimeout ensures this fires after the input value changes
-  setTimeout(function() {
-    var el = $(e.target).parent()
-    var state = !el.hasClass('toggle-off')
-    window[el.attr('data-action')](state)
-  }, 0)
-})
-
-var actionsMenu = $(".actionsMenu")
-actionsMenu.dropkick({
-  change: function(value, label) {
-    if (value === 'noop') return
-    if (value in window) window[value]()
-    setTimeout(function() {
-      actionsMenu.dropkick('reset')
-    }, 0)
-  }
-})
-
-// bunny
-window.loadExample = function() {
-  window.location.replace( '#A/bfhkSfdihfShaefShahfShahhYfYfYfSfSfSfYhYhYhahjSdechjYhYhYhadfQUhchfYhYhSfYdQYhYhaefQYhYhYhYhSjcchQYhYhYhYhSfSfWehSfUhShecheQYhYhYhYhachYhYhafhYhahfShXdfhShcihYaVhfYmfbihhQYhYhYhaddQShahfYhYhYhShYfYfYfafhQUhchfYhYhYhShechdUhUhcheUhUhcheUhUhcheUhUhcheUhUhWehUhUhcfeUhUhcfeUhUhcfeUhUhcfeUhUhehehUhUhcheUhUhcheUhUhcheUhUhWehUhUhcfeUhUhcfeUhUhcfeUhUhcfeUhUhWffUhWheQYhYhYhYhachQYiYhYhShYfYfYfYfShYhYhYhYhadeakiQSfSfSfUfShShShUfSfSfSfUfShShShUfSfSfSfcakQShShWfeQShShWeeQUhWfhUhShUfWjhQUfUfUfWfdQShShShWkhQUfUfUfchjQYhYhYhYhUfYfYfYeYhUfYhYhcifQYfYfYfYeQcffQYhYhYiYiYfcdhckjUfUfZfeYcciefhleiYhYcYhcfhYhcfhYhcifYhcfhYhcfhYhYcYh')
-  buildFromHash()
-}
-
-window.export = function() {
-  var voxels = updateHash()
-  if (voxels.length === 0) return
-  window.prompt ("Copy to clipboard: Ctrl+C, Enter", exportFunction(voxels))
-}
-
-window.reset = function() {
-  window.location.replace('#/')
-  scene.children
-    .filter(function(el) { return el.isVoxel })
-    .map(function(mesh) { scene.remove(mesh) })
-}
-
-window.setColor = function(idx) {
-  $('i[data-color="' + idx + '"]').click()
-}
-
-window.setWireframe = function(bool) {
-  wireframe = bool
-  scene.children
-    .filter(function(el) { return el.isVoxel })
-    .map(function(mesh) { mesh.children[1].visible = bool })
-}
-
-window.setFill = function(bool) {
-  fill = bool
-  scene.children
-    .filter(function(el) { return el.isVoxel })
-    .map(function(mesh) { mesh.children[0].material.visible = bool })
-}
-
-window.showGrid = function(bool) {
-  grid.material.visible = bool
-}
-
-window.setShadows = function(bool) {
-  if (bool) CubeMaterial = THREE.MeshLambertMaterial
-  else CubeMaterial = THREE.MeshBasicMaterial
-  scene.children
-    .filter(function(el) { return el !== brush && el.isVoxel })
-    .map(function(cube) { scene.remove(cube) })
-  buildFromHash()
-}
-
-function addVoxel() {
-  if (brush.position.y === 2000) return
-  var materials = [
-    new CubeMaterial( { vertexColors: THREE.VertexColors } ),
-    new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } )
-  ]
-  materials[0].color.setRGB( colors[color][0], colors[color][1], colors[color][2] )
-  var voxel = THREE.SceneUtils.createMultiMaterialObject( cube, materials )
-  voxel.isVoxel = true
-  voxel.overdraw = true
-  voxel.position.copy(brush.position)
-  voxel.matrixAutoUpdate = false
-  voxel.updateMatrix()
-  scene.add( voxel )
-}
-
-function v2h(value) {
-  value = parseInt(value).toString(16)
-  return value.length < 2 ? value + "0" : value
-}
-function rgb2hex(rgb) {
-  if (rgb.match(/^rgb/) == null) return rgb
-  var arr = rgb.match(/\d+/g)
-  return v2h(arr[0]) + v2h(arr[1]) + v2h(arr[2])
-}
-
-function scale( x, fromLow, fromHigh, toLow, toHigh ) {
-  return ( x - fromLow ) * ( toHigh - toLow ) / ( fromHigh - fromLow ) + toLow
-}
-
-var colors = Array.prototype.slice.call(document.querySelectorAll('.color')).map(function(el) {
-  var rgb = getComputedStyle(el).backgroundColor
-  return rgb.match(/\d+/g).map(function(num) { return scale(num, 0, 255, 0, 1) })
-})
-
-var cube = new THREE.CubeGeometry( 50, 50, 50 )
-
-init()
-raf(window).on('data', render)
-
-function zoom(delta) {
-  var origin = {x: 0, y: 0, z: 0}
-  var distance = camera.position.distanceTo(origin)
-  var tooFar = distance  > 2000
-  var tooClose = distance < 300
-  if (delta > 0 && tooFar) return
-  if (delta < 0 && tooClose) return
-  radius = distance // for mouse drag calculations to be correct
-  camera.translateZ( delta )
-}
-
-function init() {
-
-  container = document.createElement( 'div' )
-  document.body.appendChild( container )
+module.exports = function() {
+  var container
+  var camera, renderer, brush
+  var projector, plane, scene, grid
+  var mouse2D, mouse3D, raycaster, objectHovered
+  var isShiftDown = false, isCtrlDown = false, isMouseDown = false, isAltDown = false
+  var onMouseDownPosition = new THREE.Vector2(), onMouseDownPhi = 60, onMouseDownTheta = 45
+  var radius = 1600, theta = 90, phi = 60
+  var target = new THREE.Vector3( 0, 200, 0 )
+  var color = 0
+  var CubeMaterial = THREE.MeshBasicMaterial
+  var cube = new THREE.CubeGeometry( 50, 50, 50 )
+  var wireframe = true, fill = true
   
-  camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 10000 )
-  camera.position.x = radius * Math.sin( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
-  camera.position.y = radius * Math.sin( phi * Math.PI / 360 )
-  camera.position.z = radius * Math.cos( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
+  var colors = Array.prototype.slice.call(document.querySelectorAll('.color')).map(function(el) {
+    var rgb = getComputedStyle(el).backgroundColor
+    return rgb.match(/\d+/g).map(function(num) { return scale(num, 0, 255, 0, 1) })
+  })
 
-  window.scene = new THREE.Scene()
+  init()
+  raf(window).on('data', render)
 
-  // Grid
-
-  var size = 500, step = 50
-
-  var geometry = new THREE.Geometry()
-
-  for ( var i = - size; i <= size; i += step ) {
-
-    geometry.vertices.push( new THREE.Vector3( - size, 0, i ) )
-    geometry.vertices.push( new THREE.Vector3(   size, 0, i ) )
-
-    geometry.vertices.push( new THREE.Vector3( i, 0, - size ) )
-    geometry.vertices.push( new THREE.Vector3( i, 0,   size ) )
-
+  // bunny
+  exports.loadExample = function() {
+    window.location.replace( '#A/bfhkSfdihfShaefShahfShahhYfYfYfSfSfSfYhYhYhahjSdechjYhYhYhadfQUhchfYhYhSfYdQYhYhaefQYhYhYhYhSjcchQYhYhYhYhSfSfWehSfUhShecheQYhYhYhYhachYhYhafhYhahfShXdfhShcihYaVhfYmfbihhQYhYhYhaddQShahfYhYhYhShYfYfYfafhQUhchfYhYhYhShechdUhUhcheUhUhcheUhUhcheUhUhcheUhUhWehUhUhcfeUhUhcfeUhUhcfeUhUhcfeUhUhehehUhUhcheUhUhcheUhUhcheUhUhWehUhUhcfeUhUhcfeUhUhcfeUhUhcfeUhUhWffUhWheQYhYhYhYhachQYiYhYhShYfYfYfYfShYhYhYhYhadeakiQSfSfSfUfShShShUfSfSfSfUfShShShUfSfSfSfcakQShShWfeQShShWeeQUhWfhUhShUfWjhQUfUfUfWfdQShShShWkhQUfUfUfchjQYhYhYhYhUfYfYfYeYhUfYhYhcifQYfYfYfYeQcffQYhYhYiYiYfcdhckjUfUfZfeYcciefhleiYhYcYhcfhYhcfhYhcifYhcfhYhcfhYhYcYh')
+    buildFromHash()
   }
 
-  var material = new THREE.LineBasicMaterial( { color: 0x000000, opacity: 0.2 } )
-
-  var line = new THREE.Line( geometry, material )
-  line.type = THREE.LinePieces
-  window.grid = line
-  scene.add( line )
-
-  // Plane
-
-  projector = new THREE.Projector()
-
-  plane = new THREE.Mesh( new THREE.PlaneGeometry( 1000, 1000 ), new THREE.MeshBasicMaterial() )
-  plane.rotation.x = - Math.PI / 2
-  plane.visible = false
-  scene.add( plane )
-
-  mouse2D = new THREE.Vector3( 0, 10000, 0.5 )
-
-  // Brush
-  var brushMaterials = [
-    new CubeMaterial( { vertexColors: THREE.VertexColors, opacity: 0.5 } ),
-    new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } )
-  ]
-  brushMaterials[0].color.setRGB(colors[0][0], colors[0][1], colors[0][2])
-  brush = THREE.SceneUtils.createMultiMaterialObject( cube, brushMaterials )
-  brush.isBrush = true
-  brush.position.y = 2000
-  brush.overdraw = true
-  scene.add( brush )
-
-  // Lights
-
-  var ambientLight = new THREE.AmbientLight( 0x606060 )
-  scene.add( ambientLight )
-
-  var directionalLight = new THREE.DirectionalLight( 0xffffff )
-  directionalLight.position.x = Math.random() - 0.5
-  directionalLight.position.y = Math.random() - 0.5
-  directionalLight.position.z = Math.random() - 0.5
-  directionalLight.position.normalize()
-  scene.add( directionalLight )
-
-  var directionalLight = new THREE.DirectionalLight( 0x808080 )
-  directionalLight.position.x = Math.random() - 0.5
-  directionalLight.position.y = Math.random() - 0.5
-  directionalLight.position.z = Math.random() - 0.5
-  directionalLight.position.normalize()
-  scene.add( directionalLight )
-
-  renderer = new THREE.CanvasRenderer()
-  renderer.setSize( window.innerWidth, window.innerHeight )
-
-  container.appendChild(renderer.domElement)
-
-  renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false )
-  renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false )
-  renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false )
-  document.addEventListener( 'keydown', onDocumentKeyDown, false )
-  document.addEventListener( 'keyup', onDocumentKeyUp, false )
-  window.addEventListener('DOMMouseScroll', mousewheel, false);
-  window.addEventListener('mousewheel', mousewheel, false);
-  
-  function mousewheel( event ) {
-    zoom(event.wheelDeltaY)
+  exports.export = function() {
+    var voxels = updateHash()
+    if (voxels.length === 0) return
+    window.open(exportImage().src, 'voxel-painter-window')
   }
 
-  //
-
-  window.addEventListener( 'resize', onWindowResize, false )
-  
-  if ( window.location.hash ) buildFromHash()
-
-}
-
-function onWindowResize() {
-
-  camera.aspect = window.innerWidth / window.innerHeight
-  camera.updateProjectionMatrix()
-
-  renderer.setSize( window.innerWidth, window.innerHeight )
-
-}
-
-function getIntersecting() {
-  var intersectable = scene.children.map(function(c) { if (c.isVoxel) return c.children[0]; return c; })
-  var intersections = raycaster.intersectObjects( intersectable )
-  if (intersections.length > 0) {
-    var intersect = intersections[ 0 ].object.isBrush ? intersections[ 1 ] : intersections[ 0 ]
-    return intersect
+  exports.reset = function() {
+    window.location.replace('#/')
+    scene.children
+      .filter(function(el) { return el.isVoxel })
+      .map(function(mesh) { scene.remove(mesh) })
   }
-}
 
-function interact() {
-  if (typeof raycaster === 'undefined') return
+  exports.setColor = function(idx) {
+    $('i[data-color="' + idx + '"]').click()
+  }
 
-  if ( objectHovered ) {
-    objectHovered.material.opacity = 1
-    objectHovered = null
+  exports.setWireframe = function(bool) {
+    wireframe = bool
+    scene.children
+      .filter(function(el) { return el.isVoxel })
+      .map(function(mesh) { mesh.children[1].visible = bool })
+  }
+
+  exports.setFill = function(bool) {
+    fill = bool
+    scene.children
+      .filter(function(el) { return el.isVoxel })
+      .map(function(mesh) { mesh.children[0].material.visible = bool })
+  }
+
+  exports.showGrid = function(bool) {
+    grid.material.visible = bool
+  }
+
+  exports.setShadows = function(bool) {
+    if (bool) CubeMaterial = THREE.MeshLambertMaterial
+    else CubeMaterial = THREE.MeshBasicMaterial
+    scene.children
+      .filter(function(el) { return el !== brush && el.isVoxel })
+      .map(function(cube) { scene.remove(cube) })
+    buildFromHash()
+  }
+
+  function addVoxel() {
+    if (brush.position.y === 2000) return
+    var materials = [
+      new CubeMaterial( { vertexColors: THREE.VertexColors } ),
+      new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } )
+    ]
+    materials[0].color.setRGB( colors[color][0], colors[color][1], colors[color][2] )
+    var voxel = THREE.SceneUtils.createMultiMaterialObject( cube, materials )
+    voxel.isVoxel = true
+    voxel.overdraw = true
+    voxel.position.copy(brush.position)
+    voxel.matrixAutoUpdate = false
+    voxel.updateMatrix()
+    scene.add( voxel )
+  }
+
+  function v2h(value) {
+    value = parseInt(value).toString(16)
+    return value.length < 2 ? value + "0" : value
+  }
+  function rgb2hex(rgb) {
+    if (rgb.match(/^rgb/) == null) return rgb
+    var arr = rgb.match(/\d+/g)
+    return v2h(arr[0]) + v2h(arr[1]) + v2h(arr[2])
+  }
+
+  function scale( x, fromLow, fromHigh, toLow, toHigh ) {
+    return ( x - fromLow ) * ( toHigh - toLow ) / ( fromHigh - fromLow ) + toLow
+  }
+
+  function zoom(delta) {
+    var origin = {x: 0, y: 0, z: 0}
+    var distance = camera.position.distanceTo(origin)
+    var tooFar = distance  > 2000
+    var tooClose = distance < 300
+    if (delta > 0 && tooFar) return
+    if (delta < 0 && tooClose) return
+    radius = distance // for mouse drag calculations to be correct
+    camera.translateZ( delta )
   }
   
-  var intersect = getIntersecting()
-
-  if ( intersect ) {
-    var normal = intersect.face.normal.clone()
-    normal.applyMatrix4( intersect.object.matrixRotationWorld )
-    var position = new THREE.Vector3().addVectors( intersect.point, normal )
-    var newCube = [Math.floor( position.x / 50 ), Math.floor( position.y / 50 ), Math.floor( position.z / 50 )]
+  function bindEventsAndPlugins() {
     
-    function updateBrush() {
-      brush.position.x = Math.floor( position.x / 50 ) * 50 + 25
-      brush.position.y = Math.floor( position.y / 50 ) * 50 + 25
-      brush.position.z = Math.floor( position.z / 50 ) * 50 + 25
-    }
+    $('.color-picker .btn').click(function(e) {
+      var target = $(e.currentTarget)
+      var idx = +target.find('.color').attr('data-color')
+      color = idx
+      brush.children[0].material.color.setRGB(colors[idx][0], colors[idx][1], colors[idx][2])
+    })
+
+    $('.toggle input').click(function(e) {
+      // setTimeout ensures this fires after the input value changes
+      setTimeout(function() {
+        var el = $(e.target).parent()
+        var state = !el.hasClass('toggle-off')
+        exports[el.attr('data-action')](state)
+      }, 0)
+    })
+
+    var actionsMenu = $(".actionsMenu")
+    actionsMenu.dropkick({
+      change: function(value, label) {
+        if (value === 'noop') return
+        if (value in exports) exports[value]()
+        setTimeout(function() {
+          actionsMenu.dropkick('reset')
+        }, 0)
+      }
+    })
     
-    if (isAltDown) {
-      if (!brush.currentCube) brush.currentCube = newCube
-      if (brush.currentCube.join('') !== newCube.join('')) {
-        if ( isShiftDown ) {
-          if ( intersect.object !== plane ) {
-            scene.remove( intersect.object.parent )
-          }
-        } else {
-          addVoxel()
+    // Todo list
+    $(".todo li").click(function() {
+        $(this).toggleClass("todo-done");
+    });
+
+    // Init tooltips
+    $("[data-toggle=tooltip]").tooltip("show");
+
+    // Init tags input
+    $("#tagsinput").tagsInput();
+
+    // Init jQuery UI slider
+    $("#slider").slider({
+        min: 1,
+        max: 4,
+        value: 1,
+        orientation: "horizontal",
+        range: "min",
+    });
+
+    // JS input/textarea placeholder
+    $("input, textarea").placeholder();
+
+    // Make pagination demo work
+    $(".pagination a").click(function() {
+        if (!$(this).parent().hasClass("previous") && !$(this).parent().hasClass("next")) {
+            $(this).parent().siblings("li").removeClass("active");
+            $(this).parent().addClass("active");
         }
-      }
-      updateBrush()
-      updateHash()
-      return brush.currentCube = newCube
-    } else if ( isShiftDown ) {
-      if ( intersect.object !== plane ) {
-        objectHovered = intersect.object
-        objectHovered.material.opacity = 0.5
-        return
-      }
-    } else {
-      updateBrush()
-      return
-    }
+    });
+
+    $(".btn-group a").click(function() {
+        $(this).siblings().removeClass("active");
+        $(this).addClass("active");
+    });
+
+    // Disable link click not scroll top
+    $("a[href='#']").click(function() {
+        return false
+    });
+
   }
-  brush.position.y = 2000
-}
 
-function onDocumentMouseMove( event ) {
+  function init() {
+    
+    bindEventsAndPlugins()
+    setupImageDropImport(document.body)
 
-  event.preventDefault()
-  
-  if ( isMouseDown ) {
+    container = document.createElement( 'div' )
+    document.body.appendChild( container )
 
-    theta = - ( ( event.clientX - onMouseDownPosition.x ) * 0.5 ) + onMouseDownTheta
-    phi = ( ( event.clientY - onMouseDownPosition.y ) * 0.5 ) + onMouseDownPhi
-
-    phi = Math.min( 180, Math.max( 0, phi ) )
-
+    camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 10000 )
     camera.position.x = radius * Math.sin( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
     camera.position.y = radius * Math.sin( phi * Math.PI / 360 )
     camera.position.z = radius * Math.cos( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
-    camera.updateMatrix()
+
+    scene = new THREE.Scene()
+
+    // Grid
+
+    var size = 500, step = 50
+
+    var geometry = new THREE.Geometry()
+
+    for ( var i = - size; i <= size; i += step ) {
+
+      geometry.vertices.push( new THREE.Vector3( - size, 0, i ) )
+      geometry.vertices.push( new THREE.Vector3(   size, 0, i ) )
+
+      geometry.vertices.push( new THREE.Vector3( i, 0, - size ) )
+      geometry.vertices.push( new THREE.Vector3( i, 0,   size ) )
+
+    }
+
+    var material = new THREE.LineBasicMaterial( { color: 0x000000, opacity: 0.2 } )
+
+    var line = new THREE.Line( geometry, material )
+    line.type = THREE.LinePieces
+    grid = line
+    scene.add( line )
+
+    // Plane
+
+    projector = new THREE.Projector()
+
+    plane = new THREE.Mesh( new THREE.PlaneGeometry( 1000, 1000 ), new THREE.MeshBasicMaterial() )
+    plane.rotation.x = - Math.PI / 2
+    plane.visible = false
+    scene.add( plane )
+
+    mouse2D = new THREE.Vector3( 0, 10000, 0.5 )
+
+    // Brush
+    var brushMaterials = [
+      new CubeMaterial( { vertexColors: THREE.VertexColors, opacity: 0.5 } ),
+      new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } )
+    ]
+    brushMaterials[0].color.setRGB(colors[0][0], colors[0][1], colors[0][2])
+    brush = THREE.SceneUtils.createMultiMaterialObject( cube, brushMaterials )
+    brush.isBrush = true
+    brush.position.y = 2000
+    brush.overdraw = true
+    scene.add( brush )
+
+    // Lights
+
+    var ambientLight = new THREE.AmbientLight( 0x606060 )
+    scene.add( ambientLight )
+
+    var directionalLight = new THREE.DirectionalLight( 0xffffff )
+    directionalLight.position.x = Math.random() - 0.5
+    directionalLight.position.y = Math.random() - 0.5
+    directionalLight.position.z = Math.random() - 0.5
+    directionalLight.position.normalize()
+    scene.add( directionalLight )
+
+    var directionalLight = new THREE.DirectionalLight( 0x808080 )
+    directionalLight.position.x = Math.random() - 0.5
+    directionalLight.position.y = Math.random() - 0.5
+    directionalLight.position.z = Math.random() - 0.5
+    directionalLight.position.normalize()
+    scene.add( directionalLight )
+
+    renderer = new THREE.CanvasRenderer()
+    renderer.setSize( window.innerWidth, window.innerHeight )
+
+    container.appendChild(renderer.domElement)
+
+    renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false )
+    renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false )
+    renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false )
+    document.addEventListener( 'keydown', onDocumentKeyDown, false )
+    document.addEventListener( 'keyup', onDocumentKeyUp, false )
+    window.addEventListener('DOMMouseScroll', mousewheel, false);
+    window.addEventListener('mousewheel', mousewheel, false);
+
+    function mousewheel( event ) {
+      zoom(event.wheelDeltaY)
+    }
+
+    window.addEventListener( 'resize', onWindowResize, false )
+
+    if ( window.location.hash ) buildFromHash()
 
   }
 
-  mouse2D.x = ( event.clientX / window.innerWidth ) * 2 - 1
-  mouse2D.y = - ( event.clientY / window.innerHeight ) * 2 + 1
+  function onWindowResize() {
 
-  interact()
-}
+    camera.aspect = window.innerWidth / window.innerHeight
+    camera.updateProjectionMatrix()
 
-function onDocumentMouseDown( event ) {
-  event.preventDefault()
-  isMouseDown = true
-  onMouseDownTheta = theta
-  onMouseDownPhi = phi
-  onMouseDownPosition.x = event.clientX
-  onMouseDownPosition.y = event.clientY
-}
+    renderer.setSize( window.innerWidth, window.innerHeight )
 
-function onDocumentMouseUp( event ) {
-  event.preventDefault()
-  isMouseDown = false
-  onMouseDownPosition.x = event.clientX - onMouseDownPosition.x
-  onMouseDownPosition.y = event.clientY - onMouseDownPosition.y
-  
-  if ( onMouseDownPosition.length() > 5 ) return
-  
-  var intersect = getIntersecting()
-  
-  if ( intersect ) {
+  }
 
-    if ( isShiftDown ) {
+  function getIntersecting() {
+    var intersectable = scene.children.map(function(c) { if (c.isVoxel) return c.children[0]; return c; })
+    var intersections = raycaster.intersectObjects( intersectable )
+    if (intersections.length > 0) {
+      var intersect = intersections[ 0 ].object.isBrush ? intersections[ 1 ] : intersections[ 0 ]
+      return intersect
+    }
+  }
 
-      if ( intersect.object != plane ) {
+  function interact() {
+    if (typeof raycaster === 'undefined') return
 
-        scene.remove( intersect.object.parent )
+    if ( objectHovered ) {
+      objectHovered.material.opacity = 1
+      objectHovered = null
+    }
 
+    var intersect = getIntersecting()
+
+    if ( intersect ) {
+      var normal = intersect.face.normal.clone()
+      normal.applyMatrix4( intersect.object.matrixRotationWorld )
+      var position = new THREE.Vector3().addVectors( intersect.point, normal )
+      var newCube = [Math.floor( position.x / 50 ), Math.floor( position.y / 50 ), Math.floor( position.z / 50 )]
+
+      function updateBrush() {
+        brush.position.x = Math.floor( position.x / 50 ) * 50 + 25
+        brush.position.y = Math.floor( position.y / 50 ) * 50 + 25
+        brush.position.z = Math.floor( position.z / 50 ) * 50 + 25
       }
-    } else {
-      addVoxel()
+
+      if (isAltDown) {
+        if (!brush.currentCube) brush.currentCube = newCube
+        if (brush.currentCube.join('') !== newCube.join('')) {
+          if ( isShiftDown ) {
+            if ( intersect.object !== plane ) {
+              scene.remove( intersect.object.parent )
+            }
+          } else {
+            addVoxel()
+          }
+        }
+        updateBrush()
+        updateHash()
+        return brush.currentCube = newCube
+      } else if ( isShiftDown ) {
+        if ( intersect.object !== plane ) {
+          objectHovered = intersect.object
+          objectHovered.material.opacity = 0.5
+          return
+        }
+      } else {
+        updateBrush()
+        return
+      }
+    }
+    brush.position.y = 2000
+  }
+
+  function onDocumentMouseMove( event ) {
+
+    event.preventDefault()
+
+    if ( isMouseDown ) {
+
+      theta = - ( ( event.clientX - onMouseDownPosition.x ) * 0.5 ) + onMouseDownTheta
+      phi = ( ( event.clientY - onMouseDownPosition.y ) * 0.5 ) + onMouseDownPhi
+
+      phi = Math.min( 180, Math.max( 0, phi ) )
+
+      camera.position.x = radius * Math.sin( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
+      camera.position.y = radius * Math.sin( phi * Math.PI / 360 )
+      camera.position.z = radius * Math.cos( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
+      camera.updateMatrix()
+
+    }
+
+    mouse2D.x = ( event.clientX / window.innerWidth ) * 2 - 1
+    mouse2D.y = - ( event.clientY / window.innerHeight ) * 2 + 1
+
+    interact()
+  }
+
+  function onDocumentMouseDown( event ) {
+    event.preventDefault()
+    isMouseDown = true
+    onMouseDownTheta = theta
+    onMouseDownPhi = phi
+    onMouseDownPosition.x = event.clientX
+    onMouseDownPosition.y = event.clientY
+  }
+
+  function onDocumentMouseUp( event ) {
+    event.preventDefault()
+    isMouseDown = false
+    onMouseDownPosition.x = event.clientX - onMouseDownPosition.x
+    onMouseDownPosition.y = event.clientY - onMouseDownPosition.y
+
+    if ( onMouseDownPosition.length() > 5 ) return
+
+    var intersect = getIntersecting()
+
+    if ( intersect ) {
+
+      if ( isShiftDown ) {
+
+        if ( intersect.object != plane ) {
+
+          scene.remove( intersect.object.parent )
+
+        }
+      } else {
+        addVoxel()
+      }
+
+    }
+
+
+    updateHash()
+    render()
+    interact()
+  }
+
+  function onDocumentKeyDown( event ) {
+    switch( event.keyCode ) {
+      case 189: zoom(100); break
+      case 187: zoom(-100); break
+      case 49: setColor(0); break
+      case 50: setColor(1); break
+      case 51: setColor(2); break
+      case 52: setColor(3); break
+      case 53: setColor(4); break
+      case 54: setColor(5); break
+      case 55: setColor(6); break
+      case 56: setColor(7); break
+      case 57: setColor(8); break
+      case 48: setColor(9); break
+      case 16: isShiftDown = true; break
+      case 17: isCtrlDown = true; break
+      case 18: isAltDown = true; break
+
     }
 
   }
 
-  
-  updateHash()
-  render()
-  interact()
-}
+  function onDocumentKeyUp( event ) {
 
-function onDocumentKeyDown( event ) {
-  switch( event.keyCode ) {
-    case 189: zoom(100); break
-    case 187: zoom(-100); break
-    case 49: setColor(0); break
-    case 50: setColor(1); break
-    case 51: setColor(2); break
-    case 52: setColor(3); break
-    case 53: setColor(4); break
-    case 54: setColor(5); break
-    case 55: setColor(6); break
-    case 56: setColor(7); break
-    case 57: setColor(8); break
-    case 48: setColor(9); break
-    case 16: isShiftDown = true; break
-    case 17: isCtrlDown = true; break
-    case 18: isAltDown = true; break
-    
+    switch( event.keyCode ) {
+
+      case 16: isShiftDown = false; break
+      case 17: isCtrlDown = false; break
+      case 18: isAltDown = false; break
+
+    }
   }
 
-}
 
-function onDocumentKeyUp( event ) {
+  function buildFromHash() {
 
-  switch( event.keyCode ) {
+    var hash = window.location.hash.substr( 1 ),
+    version = hash.substr( 0, 2 )
 
-    case 16: isShiftDown = false; break
-    case 17: isCtrlDown = false; break
-    case 18: isAltDown = false; break
+    if ( version == "A/" ) {
+
+      var current = { x: 0, y: 0, z: 0, c: 0 }
+      var data = decode( hash.substr( 2 ) )
+      var i = 0, l = data.length
+
+      while ( i < l ) {
+
+        var code = data[ i ++ ].toString( 2 )
+        if ( code.charAt( 1 ) == "1" ) current.x += data[ i ++ ] - 32
+        if ( code.charAt( 2 ) == "1" ) current.y += data[ i ++ ] - 32
+        if ( code.charAt( 3 ) == "1" ) current.z += data[ i ++ ] - 32
+        if ( code.charAt( 4 ) == "1" ) current.c += data[ i ++ ] - 32
+        if ( code.charAt( 0 ) == "1" ) {
+          var materials = [
+            new CubeMaterial( { vertexColors: THREE.VertexColors } ),
+            new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } )
+          ]
+          var col = colors[current.c] || colors[0]
+          materials[0].color.setRGB( col[0], col[1], col[2] )
+          var voxel = THREE.SceneUtils.createMultiMaterialObject( cube, materials )
+          voxel.isVoxel = true
+          voxel.position.x = current.x * 50 + 25
+          voxel.position.y = current.y * 50 + 25
+          voxel.position.z = current.z * 50 + 25
+          voxel.overdraw = true
+          scene.add( voxel )
+        }
+      }
+
+    }
+
+    updateHash()
 
   }
-}
 
+  function updateHash() {
 
-function buildFromHash() {
-
-  var hash = window.location.hash.substr( 1 ),
-  version = hash.substr( 0, 2 )
-
-  if ( version == "A/" ) {
-
+    var data = [], voxels = [], code
     var current = { x: 0, y: 0, z: 0, c: 0 }
-    var data = decode( hash.substr( 2 ) )
-    var i = 0, l = data.length
+    var last = { x: 0, y: 0, z: 0, c: 0 }
+    for ( var i in scene.children ) {
 
-    while ( i < l ) {
+      var object = scene.children[ i ]
 
-      var code = data[ i ++ ].toString( 2 )
-      if ( code.charAt( 1 ) == "1" ) current.x += data[ i ++ ] - 32
-      if ( code.charAt( 2 ) == "1" ) current.y += data[ i ++ ] - 32
-      if ( code.charAt( 3 ) == "1" ) current.z += data[ i ++ ] - 32
-      if ( code.charAt( 4 ) == "1" ) current.c += data[ i ++ ] - 32
-      if ( code.charAt( 0 ) == "1" ) {
-        var materials = [
-          new CubeMaterial( { vertexColors: THREE.VertexColors } ),
-          new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } )
-        ]
-        var col = colors[current.c] || colors[0]
-        materials[0].color.setRGB( col[0], col[1], col[2] )
-        var voxel = THREE.SceneUtils.createMultiMaterialObject( cube, materials )
-        voxel.isVoxel = true
-        voxel.position.x = current.x * 50 + 25
-        voxel.position.y = current.y * 50 + 25
-        voxel.position.z = current.z * 50 + 25
-        voxel.overdraw = true
-        scene.add( voxel )
-      }
-    }
+      if ( object.isVoxel && object !== plane && object !== brush ) {
 
-  }
+        current.x = ( object.position.x - 25 ) / 50
+        current.y = ( object.position.y - 25 ) / 50
+        current.z = ( object.position.z - 25 ) / 50
 
-  updateHash()
+        var colorString = ['r', 'g', 'b'].map(function(col) { return object.children[0].material.color[col] }).join('')
+        for (var i = 0; i < colors.length; i++) if (colors[i].join('') === colorString) current.c = i
+        voxels.push({x: current.x, y: current.y + 1, z: current.z , c: current.c + 1})
 
-}
+        code = 0
 
-function updateHash() {
+        if ( current.x != last.x ) code += 1000
+        if ( current.y != last.y ) code += 100
+        if ( current.z != last.z ) code += 10
+        if ( current.c != last.c ) code += 1
 
-  var data = [], voxels = [], code
-  var current = { x: 0, y: 0, z: 0, c: 0 }
-  var last = { x: 0, y: 0, z: 0, c: 0 }
-  for ( var i in scene.children ) {
+        code += 10000
 
-    var object = scene.children[ i ]
+        data.push( parseInt( code, 2 ) )
 
-    if ( object.isVoxel && object !== plane && object !== brush ) {
+        if ( current.x != last.x ) {
 
-      current.x = ( object.position.x - 25 ) / 50
-      current.y = ( object.position.y - 25 ) / 50
-      current.z = ( object.position.z - 25 ) / 50
-      
-      var colorString = ['r', 'g', 'b'].map(function(col) { return object.children[0].material.color[col] }).join('')
-      for (var i = 0; i < colors.length; i++) if (colors[i].join('') === colorString) current.c = i
-      voxels.push({x: current.x, y: current.y + 1, z: current.z , c: current.c + 1})
-      
-      code = 0
+          data.push( current.x - last.x + 32 )
+          last.x = current.x
 
-      if ( current.x != last.x ) code += 1000
-      if ( current.y != last.y ) code += 100
-      if ( current.z != last.z ) code += 10
-      if ( current.c != last.c ) code += 1
+        }
 
-      code += 10000
+        if ( current.y != last.y ) {
 
-      data.push( parseInt( code, 2 ) )
+          data.push( current.y - last.y + 32 )
+          last.y = current.y
 
-      if ( current.x != last.x ) {
+        }
 
-        data.push( current.x - last.x + 32 )
-        last.x = current.x
+        if ( current.z != last.z ) {
 
-      }
+          data.push( current.z - last.z + 32 )
+          last.z = current.z
 
-      if ( current.y != last.y ) {
+        }
 
-        data.push( current.y - last.y + 32 )
-        last.y = current.y
+        if ( current.c != last.c ) {
 
-      }
+          data.push( current.c - last.c + 32 )
+          last.c = current.c
 
-      if ( current.z != last.z ) {
-
-        data.push( current.z - last.z + 32 )
-        last.z = current.z
-
-      }
-
-      if ( current.c != last.c ) {
-
-        data.push( current.c - last.c + 32 )
-        last.c = current.c
+        }
 
       }
 
     }
+    data = encode( data )
+    window.location.replace("#A/" + data)
+    return voxels
+  }
+
+  function exportFunction(voxels) {
+    var dimensions = getDimensions(voxels)
+    voxels = voxels.map(function(v) { return [v.x, v.y, v.z, v.c + 1]})
+    var funcString = "var voxels = " + JSON.stringify(voxels) + ";"
+    funcString += 'var dimensions = ' + JSON.stringify(dimensions) + ';'
+    funcString += 'voxels.map(function(voxel) {' +
+      'game.setBlock([position.x + voxel[0], position.y + voxel[1], position.z + voxel[2]], voxel[3])' +
+    '});'
+    return funcString
+  }
+
+  // skips every fourth byte when encoding images,
+  // i.e. leave the alpha channel
+  // alone and only change RGB
+  function pickRGB(idx) {
+    return idx + (idx/3) | 0
+  }
+
+  function exportImage() {
+    var canvas = document.createElement('canvas')
+    var ctx = canvas.getContext('2d')
+    var source = renderer.domElement
+    var width = canvas.width = source.width
+    var height = canvas.height = source.height
+
+    ctx.fillStyle = 'rgb(255,255,255)'
+    ctx.fillRect(0, 0, width, height)
+    ctx.drawImage(source, 0, 0, width, height)
+
+    updateHash()
+
+    var imageData = ctx.getImageData(0, 0, width, height)
+    var voxelData = window.location.hash
+    var text = 'voxel-painter:' + voxelData
+
+    lsb.encode(imageData.data, text, pickRGB)
+
+    ctx.putImageData(imageData, 0, 0)
+
+    var image = new Image
+    image.src = canvas.toDataURL()
+    return image
+  }
+
+  function importImage(image) {
+    var canvas = document.createElement('canvas')
+    var ctx = canvas.getContext('2d')
+    var width = canvas.width = image.width
+    var height = canvas.height = image.height
+
+    ctx.fillStyle = 'rgb(255,255,255)'
+    ctx.fillRect(0, 0, width, height)
+    ctx.drawImage(image, 0, 0)
+
+    var imageData = ctx.getImageData(0, 0, width, height)
+    var text = lsb.decode(imageData.data, pickRGB)
+
+    // ignore images that weren't generated by voxel-painter
+    if (text.slice(0, 14) !== 'voxel-painter:') return false
+
+    window.location.hash = text.slice(14)
+    buildFromHash()
+    return true
+  }
+
+  function setupImageDropImport(element) {
+    element.ondragover = function(event) {
+      return event.preventDefault(event) && false
+    }
+    element.ondrop = function(event) {
+      event.preventDefault()
+      event.stopPropagation()
+
+      if (!event.dataTransfer) return false
+
+      var file = event.dataTransfer.files[0]
+      if (!file) return false
+      if (!file.type.match(/image/)) return false
+
+      var reader = new FileReader
+      reader.onload = function(event) {
+        var image = new Image
+        image.src = event.target.result
+        image.onload = function() {
+          if (importImage(image)) return
+          window.alert('Looks like that image doesn\'t have any voxels inside it...')
+        }
+      }
+      reader.readAsDataURL(file)
+      return false
+    }
+  }
+
+  function getDimensions(voxels) {
+    var low = [0, 0, 0], high = [0, 0, 0]
+    voxels.map(function(voxel) {
+      if (voxel.x < low[0]) low[0] = voxel.x
+      if (voxel.x > high[0]) high[0] = voxel.x
+      if (voxel.y < low[1]) low[1] = voxel.y
+      if (voxel.y > high[1]) high[1] = voxel.y
+      if (voxel.z < low[2]) low[2] = voxel.z
+      if (voxel.z > high[2]) high[2] = voxel.z
+    })
+    return [ high[0]-low[0], high[1]-low[1], high[2]-low[2] ]
+  }
+
+  // https://gist.github.com/665235
+
+  function decode( string ) {
+
+    var output = []
+    string.split('').forEach( function ( v ) { output.push( "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".indexOf( v ) ) } )
+    return output
 
   }
-  data = encode( data )
-  window.location.replace("#A/" + data)
-  return voxels
+
+  function encode( array ) {
+
+    var output = ""
+    array.forEach( function ( v ) { output += "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".charAt( v ) } )
+    return output
+
+  }
+
+  function save() {
+
+    window.open( renderer.domElement.toDataURL('image/png'), 'mywindow' )
+
+  }
+
+  function render() {
+    camera.lookAt( target )
+    raycaster = projector.pickingRay( mouse2D.clone(), camera )
+    renderer.render( scene, camera )
+  }
+  
 }
-
-function exportFunction(voxels) {
-  var dimensions = getDimensions(voxels)
-  voxels = voxels.map(function(v) { return [v.x, v.y, v.z, v.c]})
-  var funcString = "var voxels = " + JSON.stringify(voxels) + ";"
-  funcString += 'var dimensions = ' + JSON.stringify(dimensions) + ';'
-  funcString += 'var size = game.cubeSize;'
-  funcString += 'voxels.map(function(voxel) {' +
-    'game.setBlock({x: position.x + voxel[0] * size, y: position.y + voxel[1] * size, z: position.z + voxel[2] * size}, voxel[3])' +
-  '});'
-  return funcString
-}
-
-function getDimensions(voxels) {
-  var low = [0, 0, 0], high = [0, 0, 0]
-  voxels.map(function(voxel) {
-    if (voxel.x < low[0]) low[0] = voxel.x
-    if (voxel.x > high[0]) high[0] = voxel.x
-    if (voxel.y < low[1]) low[1] = voxel.y
-    if (voxel.y > high[1]) high[1] = voxel.y
-    if (voxel.z < low[2]) low[2] = voxel.z
-    if (voxel.z > high[2]) high[2] = voxel.z
-  })
-  return [ high[0]-low[0], high[1]-low[1], high[2]-low[2] ]
-}
-
-// https://gist.github.com/665235
-
-function decode( string ) {
-
-  var output = []
-  string.split('').forEach( function ( v ) { output.push( "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".indexOf( v ) ) } )
-  return output
-
-}
-
-function encode( array ) {
-
-  var output = ""
-  array.forEach( function ( v ) { output += "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".charAt( v ) } )
-  return output
-
-}
-
-function save() {
-
-  window.open( renderer.domElement.toDataURL('image/png'), 'mywindow' )
-
-}
-
-function render() {
-  camera.lookAt( target )
-  raycaster = projector.pickingRay( mouse2D.clone(), camera )
-  renderer.render( scene, camera )
-}
-},{"three":2,"raf":3}],3:[function(require,module,exports){(function(){module.exports = raf
+},{"three":3,"raf":4,"lsb":5}],4:[function(require,module,exports){(function(){module.exports = raf
 
 var EE = require('events').EventEmitter
   , global = typeof window === 'undefined' ? this : window
@@ -616,7 +748,120 @@ raf.polyfill = _raf
 raf.now = function() { return Date.now() }
 
 })()
-},{"events":4}],2:[function(require,module,exports){(function(){
+},{"events":6}],5:[function(require,module,exports){var spaceCode = ' '.charCodeAt(0)
+
+function stringToBits(str) {
+  var bits = []
+
+  for (var i = 0, l = str.length; i < l; i += 1) {
+    var character = str[i]
+      , number = str.charCodeAt(i)
+
+    // Non-standard characters are treated as spaces
+    if (number > 255) number = spaceCode
+
+    // Split the character code into bits
+    for (var j = 7; j >= 0; j -= 1) {
+      bits[i * 8 + 7 - j] = (number >> j) & 1
+    }
+  }
+
+  return bits
+}
+
+function bitsToString(bits) {
+  var str = ''
+    , character
+
+  for (var i = 0, l = bits.length; i < l; i += 8) {
+    character = 0
+    for (var j = 7; j >= 0; j -= 1) {
+      character += bits[i + 7 - j] << j
+    }
+    str += String.fromCharCode(character)
+  }
+
+  return str
+}
+
+function encode(channel, stegotext, fn) {
+  fn = fn || function index(n) { return n }
+
+  var i = 0
+    , channelLength = channel.length
+    , stegoLength
+    , textLength
+    , index
+
+  textLength = stegotext.length
+  stegotext = stringToBits(stegotext)
+  stegoLength = stegotext.length
+
+  // Encode length into the first 32 bytes
+  var lengthString = ''
+  lengthString += String.fromCharCode((textLength >> 32) & 255)
+  lengthString += String.fromCharCode((textLength >> 24) & 255)
+  lengthString += String.fromCharCode((textLength >> 16) & 255)
+  lengthString += String.fromCharCode((textLength >>  8) & 255)
+  lengthString = stringToBits(lengthString)
+
+  function unload(data) {
+    var length = data.length
+    var j = 0
+
+    while (i < channelLength && j < length) {
+      index = fn(i)
+      if (index < 0) break
+      channel[index] = (channel[index] & 254) + (data[j] ? 1 : 0)
+      i += 1
+      j += 1
+    }
+  }
+
+  unload(lengthString)
+  unload(stegotext)
+
+  return channel
+}
+
+function decode(channel, fn) {
+  fn = fn || function index(n) { return n }
+
+  var i = 0
+    , l = 0
+    , stegotext = []
+    , length = []
+    , index
+
+  for (var n = 0; n < 32; n += 1) {
+    length[n] = (channel[fn(n)] & 1) ? 1 : 0
+  }
+  length = bitsToString(length)
+
+  l += length.charCodeAt(0) << 32
+  l += length.charCodeAt(1) << 24
+  l += length.charCodeAt(2) << 16
+  l += length.charCodeAt(3) << 8
+  l = Math.min(l * 8, channel.length)
+
+  while (i < l) {
+    index = fn(i + 32)
+    if (index < 0) break
+    stegotext[i] = (channel[index] & 1) ? 1 : 0
+    i += 1
+  }
+
+  return bitsToString(stegotext)
+}
+
+module.exports = {
+  encode: encode
+, decode: decode
+, bitsToString: bitsToString
+, stringToBits: stringToBits
+}
+
+},{}],3:[function(require,module,exports){(function(){
 var window = window || {};
 var self = self || {};
 /**
@@ -36422,7 +36667,7 @@ if (typeof exports !== 'undefined') {
 }
 
 })()
-},{}],5:[function(require,module,exports){// shim for using process in browser
+},{}],7:[function(require,module,exports){// shim for using process in browser
 
 var process = module.exports = {};
 
@@ -36475,7 +36720,7 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],4:[function(require,module,exports){(function(process){if (!process.EventEmitter) process.EventEmitter = function () {};
+},{}],6:[function(require,module,exports){(function(process){if (!process.EventEmitter) process.EventEmitter = function () {};
 
 var EventEmitter = exports.EventEmitter = process.EventEmitter;
 var isArray = typeof Array.isArray === 'function'
@@ -36660,4 +36905,4 @@ EventEmitter.prototype.listeners = function(type) {
 };
 
 })(require("__browserify_process"))
-},{"__browserify_process":5}]},{},[1]);
+},{"__browserify_process":7}]},{},[1]);
