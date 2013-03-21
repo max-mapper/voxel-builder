@@ -16,8 +16,8 @@ $(document).ready(function() {
     // Init jQuery UI slider
     $("#slider").slider({
         min: 1,
-        max: 5,
-        value: 2,
+        max: 4,
+        value: 1,
         orientation: "horizontal",
         range: "min",
     });

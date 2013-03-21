@@ -6,9 +6,11 @@
   },
   "devDependencies": {
     "browservefy": "0.0.9",
-    "raf": "0.0.1"
+    "three": "0.55.0",
+    "raf": "0.0.1",
+    "lsb": "0.1.0"
   },
   "scripts": {
-    "start": "browservefy index.js:bundle.js 8080"
+    "start": "browservefy demo.js:bundle.js 8080"
   }
 }

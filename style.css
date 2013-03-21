@@ -1,0 +1,22 @@
+body {
+  margin: 0px;
+  overflow: hidden;
+}
+.share:before { content: none !important;}
+.share { width: 225px; }
+.color { width: 18px; height: 16px; display: block; }
+.color.one { background: #2ECC71; }
+.color.two { background: #3498DB; }
+.color.three { background: #34495E; }
+.color.four { background: #E67E22; }
+.color.five { background: #ECF0F1; }
+.demo-text-box { margin-right: 24px; }
+.demo-panel-title { margin-bottom: 10px !important; padding-top: 10px !important; }
+#instructions { width: 250px; position: absolute; top: 0px; right: 0px; }
+.instructions { background: white; border: 2px solid #1abc9c; border-radius: 6px; padding: 6px 1px 1px 6px; overflow-y: auto; text-align: left;}
+.actionsMenu { width: 224px; }
+.sliderContainer { width: 215px; margin-left: 7px; }
+.pagination ul > li.previous > a { margin-right: 4px !important; }
+.pagination ul > li.next > a { margin-left: 4px !important; }
+.pagination { margin: 0 0 10px 0 !important; }
+.ui-slider-segment { margin: 3px -6px 0 33% !important; }
