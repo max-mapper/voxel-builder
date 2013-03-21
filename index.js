@@ -22,33 +22,6 @@ module.exports = function() {
 
   init()
   raf(window).on('data', render)
-  
-  $('.color-picker .btn').click(function(e) {
-    var target = $(e.currentTarget)
-    var idx = +target.find('.color').attr('data-color')
-    color = idx
-    brush.children[0].material.color.setRGB(colors[idx][0], colors[idx][1], colors[idx][2])
-  })
-
-  $('.toggle input').click(function(e) {
-    // setTimeout ensures this fires after the input value changes
-    setTimeout(function() {
-      var el = $(e.target).parent()
-      var state = !el.hasClass('toggle-off')
-      exports[el.attr('data-action')](state)
-    }, 0)
-  })
-
-  var actionsMenu = $(".actionsMenu")
-  actionsMenu.dropkick({
-    change: function(value, label) {
-      if (value === 'noop') return
-      if (value in exports) exports[value]()
-      setTimeout(function() {
-        actionsMenu.dropkick('reset')
-      }, 0)
-    }
-  })
 
   // bunny
   exports.loadExample = function() {
@@ -140,8 +113,82 @@ module.exports = function() {
     radius = distance // for mouse drag calculations to be correct
     camera.translateZ( delta )
   }
+  
+  function bindEventsAndPlugins() {
+    
+    $('.color-picker .btn').click(function(e) {
+      var target = $(e.currentTarget)
+      var idx = +target.find('.color').attr('data-color')
+      color = idx
+      brush.children[0].material.color.setRGB(colors[idx][0], colors[idx][1], colors[idx][2])
+    })
+
+    $('.toggle input').click(function(e) {
+      // setTimeout ensures this fires after the input value changes
+      setTimeout(function() {
+        var el = $(e.target).parent()
+        var state = !el.hasClass('toggle-off')
+        exports[el.attr('data-action')](state)
+      }, 0)
+    })
+
+    var actionsMenu = $(".actionsMenu")
+    actionsMenu.dropkick({
+      change: function(value, label) {
+        if (value === 'noop') return
+        if (value in exports) exports[value]()
+        setTimeout(function() {
+          actionsMenu.dropkick('reset')
+        }, 0)
+      }
+    })
+    
+    // Todo list
+    $(".todo li").click(function() {
+        $(this).toggleClass("todo-done");
+    });
+
+    // Init tooltips
+    $("[data-toggle=tooltip]").tooltip("show");
+
+    // Init tags input
+    $("#tagsinput").tagsInput();
+
+    // Init jQuery UI slider
+    $("#slider").slider({
+        min: 1,
+        max: 4,
+        value: 1,
+        orientation: "horizontal",
+        range: "min",
+    });
+
+    // JS input/textarea placeholder
+    $("input, textarea").placeholder();
+
+    // Make pagination demo work
+    $(".pagination a").click(function() {
+        if (!$(this).parent().hasClass("previous") && !$(this).parent().hasClass("next")) {
+            $(this).parent().siblings("li").removeClass("active");
+            $(this).parent().addClass("active");
+        }
+    });
+
+    $(".btn-group a").click(function() {
+        $(this).siblings().removeClass("active");
+        $(this).addClass("active");
+    });
+
+    // Disable link click not scroll top
+    $("a[href='#']").click(function() {
+        return false
+    });
+
+  }
 
   function init() {
+    
+    bindEventsAndPlugins()
 
     container = document.createElement( 'div' )
     document.body.appendChild( container )
