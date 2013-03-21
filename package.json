@@ -9,6 +9,6 @@
     "raf": "0.0.1"
   },
   "scripts": {
-    "start": "browservefy index.js:bundle.js 8080"
+    "start": "browservefy demo.js:bundle.js 8080"
   }
 }
