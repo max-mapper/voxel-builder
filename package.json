@@ -6,6 +6,7 @@
   },
   "devDependencies": {
     "browservefy": "0.0.9",
+    "three": "0.55.0",
     "raf": "0.0.1"
   },
   "scripts": {
