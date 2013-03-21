@@ -33,8 +33,7 @@ module.exports = function() {
   exports.export = function() {
     var voxels = updateHash()
     if (voxels.length === 0) return
-    console.log(exportFunction(voxels))
-    window.alert("An export script has been logged to your console. PNG export coming soon.")
+    window.open(exportImage(voxels).src, 'voxel-painter-window')
   }
 
   exports.reset = function() {
@@ -191,6 +190,7 @@ module.exports = function() {
   function init() {
     
     bindEventsAndPlugins()
+    setupImageDropImport(document.body)
 
     container = document.createElement( 'div' )
     document.body.appendChild( container )
@@ -574,6 +574,13 @@ module.exports = function() {
     return funcString
   }
 
+  // skips every fourth byte when encoding images,
+  // i.e. leave the alpha channel
+  // alone and only change RGB
+  function pickRGB(idx) {
+    return idx + (idx/3) | 0
+  }
+
   function exportImage(voxels) {
     var canvas = document.createElement('canvas')
     var ctx = canvas.getContext('2d')
@@ -583,21 +590,65 @@ module.exports = function() {
 
     ctx.fillStyle = 'rgb(255,255,255)'
     ctx.fillRect(0, 0, width, height)
-    ctx.drawImage(source, 0, 0)
+    ctx.drawImage(source, 0, 0, width, height)
+
+    updateHash()
 
     var imageData = ctx.getImageData(0, 0, width, height)
+    var voxelData = window.location.hash
+    var text = 'voxel-painter:' + voxelData
 
-    lsb.encode(imageData.data, encode(voxels), function(idx) {
-      // skips every fourth byte, i.e. leave the alpha channel
-      // alone and only change RGB
-      return idx + (idx/3) | 0
-    })
+    lsb.encode(imageData.data, text, pickRGB)
 
     ctx.putImageData(imageData, 0, 0)
 
     var image = new Image
     image.src = canvas.toDataURL()
     return image
+  }
+
+  function importImage(image) {
+    var canvas = document.createElement('canvas')
+    var ctx = canvas.getContext('2d')
+    var width = canvas.width = image.width
+    var height = canvas.height = image.height
+
+    ctx.fillStyle = 'rgb(255,255,255)'
+    ctx.fillRect(0, 0, width, height)
+    ctx.drawImage(image, 0, 0)
+
+    var imageData = ctx.getImageData(0, 0, width, height)
+    var text = lsb.decode(imageData.data, pickRGB)
+
+    window.location.hash = text.slice(14)
+    buildFromHash()
+  }
+
+  function setupImageDropImport(element) {
+    element.ondragover = function(event) {
+      return event.preventDefault(event) && false
+    }
+    element.ondrop = function(event) {
+      event.preventDefault()
+      event.stopPropagation()
+
+      if (!event.dataTransfer) return false
+
+      var file = event.dataTransfer.files[0]
+      if (!file) return false
+      if (!file.type.match(/image/)) return false
+
+      var reader = new FileReader
+      reader.onload = function(event) {
+        var image = new Image
+        image.src = event.target.result
+        image.onload = function() {
+          importImage(image)
+        }
+      }
+      reader.readAsDataURL(file)
+      return false
+    }
   }
 
   function getDimensions(voxels) {
