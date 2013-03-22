@@ -34,7 +34,7 @@ module.exports = function() {
   exports.export = function() {
     var voxels = updateHash()
     if (voxels.length === 0) return
-    window.open(exportImage().src, 'voxel-painter-window')
+    window.open(exportImage(800, 600).src, 'voxel-painter-window')
   }
 
   exports.reset = function() {
@@ -582,12 +582,17 @@ module.exports = function() {
     return idx + (idx/3) | 0
   }
 
-  function exportImage() {
+  function exportImage(width, height) {
     var canvas = document.createElement('canvas')
     var ctx = canvas.getContext('2d')
     var source = renderer.domElement
-    var width = canvas.width = source.width
-    var height = canvas.height = source.height
+    var width = canvas.width = width || source.width
+    var height = canvas.height = height || source.height
+
+    renderer.setSize(width, height)
+    camera.aspect = width/height
+    camera.updateProjectionMatrix()
+    renderer.render(scene, camera)
 
     ctx.fillStyle = 'rgb(255,255,255)'
     ctx.fillRect(0, 0, width, height)
@@ -602,6 +607,8 @@ module.exports = function() {
     lsb.encode(imageData.data, text, pickRGB)
 
     ctx.putImageData(imageData, 0, 0)
+
+    onWindowResize()
 
     var image = new Image
     image.src = canvas.toDataURL()
