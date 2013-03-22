@@ -51,7 +51,7 @@ module.exports = function() {
       game: fakeGame,
       // api v3 key from imgur.com
       key: 'cda7e5d26c82bea',
-      message: 'Check out my voxel critter! Made with http://maxogden.github.com/voxel-painter/',
+      message: 'Check out my voxel critter! Made with ' + window.location.href,
       hashtags: 'voxelcritter'
     })
     $('#share .modal-footer .btn-primary').remove()
