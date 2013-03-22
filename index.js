@@ -22,8 +22,16 @@ module.exports = function() {
     return rgb.match(/\d+/g).map(function(num) { return scale(num, 0, 255, 0, 1) })
   })
 
+  showWelcome()
   init()
   raf(window).on('data', render)
+  
+  function showWelcome() {
+    var seenWelcome = localStorage.getItem('seenWelcome')
+    if (seenWelcome) return
+    $('#welcome').modal()
+    localStorage.setItem('seenWelcome', true)
+  }
 
   exports.viewInstructions = function() {
     $('#welcome').modal()
@@ -40,11 +48,12 @@ module.exports = function() {
     }
     shareDialog = voxelShare({
       game: fakeGame,
-      // api key from imgur.com
-      // key: 'fe62f2e01e35b2f23822c17da92fd1a7',
-      key: '1e6b6f6b09df169bcdcbd86a52e869c5',
-      message: 'Check out my voxel critter! #voxelcritter'
+      // api v3 key from imgur.com
+      key: 'cda7e5d26c82bea',
+      message: 'Check out my voxel critter!',
+      hashtags: 'voxelcritter'
     })
+    $('#share .modal-footer .btn-primary').remove()
     $('#share').modal()
     var modalBody = $('#share .modal-body')
     modalBody.html('This photo will be attached to your tweet after you fill out a tweet form.')
