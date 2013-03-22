@@ -14,8 +14,10 @@
       
       <select class="actionsMenu" value="Actions" tabindex="1">
         <option value="noop" selected="selected">Actions</option>
+        <option value="viewInstructions">View Instructions</option>
         <option value="loadExample">Load Example Bunny</option>
-        <option value="export">Export</option>
+        <option value="share">Share on Twitter</option>
+        <option value="export">Export PNG</option>
         <option value="reset">Reset</option>
       </select>
 
@@ -73,6 +75,14 @@
           </div> <!-- /toolbar -->
         </div>
       </div>
+      <div class="share">
+        <div class="tile">
+          <img class="tile-image big-illustration" alt="" src="flatui/images/illustrations/share.png" />
+          <h4>Put yer critter on twitter!</h4>
+          <p>Others will be able to download and view it.</p>
+          <a id="shareButton" class="btn btn-primary btn-large btn-block">Share on Twitter</a>
+        </div>
+      </div>
       
       <!-- <div class="sliderContainer">
         <div id="slider" class="ui-slider">
@@ -81,20 +91,65 @@
         </div>
       </div> -->
       
-      <div class="demo-text-box instructions">
-        <p><strong>click + drag</strong> to adjust angle.</p>
-        <p><strong>click</strong> to place a voxel.</p>
-        <p><strong>shift</strong> to delete a voxel.</p>
-        <p><strong>alt</strong> to bulk edit voxels.</p>
-        <p><strong>1-5</strong> to change color.</p>
-        <p><strong>+/-</strong> or <strong>scroll</strong> to zoom.</p>
-        <p><strong>drop</strong> an exported .png to load it back in</p>
-        <p>Report bugs <a href="https://github.com/maxogden/voxel-painter">on Github</a>.</p>
-      </div>
-      
      <div id="output"></div>
     </div>
-
+    
+    <div id="welcome" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="myModalLabel">Welcome to Voxel Critter Creator</h3>
+      </div>
+      <div class="modal-body">
+        <div class="span3 hello">
+          <p><h4>Create your own critter!</h4></p>
+          <p>Use your mouse to place blocks. When you are done designing your critter you can share it with the world.</p>
+          <p><img src="critter.png"></p>
+        </div>
+        <div class="span3">
+          <div class="tile controls">
+            <p><h4>Controls</h4></p>
+            <p><strong>click + drag</strong> to adjust angle.</p>
+            <p><strong>click</strong> to place a voxel.</p>
+            <p><strong>shift</strong> to delete a voxel.</p>
+            <p><strong>alt</strong> to bulk edit voxels.</p>
+            <p><strong>1-5</strong> to change color.</p>
+            <p><strong>+/-</strong> or <strong>scroll</strong> to zoom.</p>
+            <p><strong>drop</strong> an creature .png image to load it in</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" data-dismiss="modal" aria-hidden="true">Okay!</button>
+      </div>
+    </div>
+    
+    <div id="share" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="myModalLabel">Share on Twitter</h3>
+      </div>
+      <div class="modal-body">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-cancel" data-dismiss="modal" aria-hidden="true">Close</button>
+      </div>
+    </div>
+    
+    <div id="about" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="myModalLabel">About</h3>
+      </div>
+      <div class="modal-body">
+        <p>Made by <a href="http://twitter.com/maxogden">@maxogden</a> for the <a href="http://twitter.com/voxeljs">@voxeljs</a> project.</p>
+        <p>Based originally on Voxel Painter by Mr. Doob.</p>
+        <p>Report bugs <a href="https://github.com/maxogden/voxel-painter">on Github</a>.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+      </div>
+    </div>
+    
     <script type="text/javascript" src="flatui-deps.js"></script>
     <script type="text/javascript" src="bundle.js"></script>
   </body>

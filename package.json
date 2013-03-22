@@ -2,7 +2,8 @@
   "name": "voxel-painter",
   "version": "0.0.1",
   "dependencies": {
-    "three": "0.55.0"
+    "three": "0.55.0",
+    "voxel-share": "0.1.0"
   },
   "devDependencies": {
     "browservefy": "0.0.9",

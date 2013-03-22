@@ -1,11 +1,12 @@
 var THREE = require('three')
 var raf = require('raf')
 var lsb = require('lsb')
+var voxelShare = require('voxel-share')
 
 module.exports = function() {
   var container
   var camera, renderer, brush
-  var projector, plane, scene, grid
+  var projector, plane, scene, grid, shareDialog
   var mouse2D, mouse3D, raycaster, objectHovered
   var isShiftDown = false, isCtrlDown = false, isMouseDown = false, isAltDown = false
   var onMouseDownPosition = new THREE.Vector2(), onMouseDownPhi = 60, onMouseDownTheta = 45
@@ -24,6 +25,36 @@ module.exports = function() {
   init()
   raf(window).on('data', render)
 
+  exports.viewInstructions = function() {
+    $('#welcome').modal()
+  }
+  
+  exports.share = function() {
+    var fakeGame = {
+      renderer: {
+        render: function() {}
+      },
+      scene: {},
+      camera: {},
+      element: getExportCanvas(800, 600)
+    }
+    shareDialog = voxelShare({
+      game: fakeGame,
+      // api key from imgur.com
+      // key: 'fe62f2e01e35b2f23822c17da92fd1a7',
+      key: '1e6b6f6b09df169bcdcbd86a52e869c5',
+      message: 'Check out my voxel critter! #voxelcritter'
+    })
+    $('#share').modal()
+    var modalBody = $('#share .modal-body')
+    modalBody.html('This photo will be attached to your tweet after you fill out a tweet form.')
+    shareDialog.open(modalBody[0])
+    $('#share .voxel-share button').addClass('btn btn-primary').prependTo($('#share .modal-footer'))
+    shareDialog.close = function() {
+      $('#share .modal-footer .btn-cancel').click()
+    }
+  }
+  
   // bunny
   exports.loadExample = function() {
     window.location.replace( '#A/bfhkSfdihfShaefShahfShahhYfYfYfSfSfSfYhYhYhahjSdechjYhYhYhadfQUhchfYhYhSfYdQYhYhaefQYhYhYhYhSjcchQYhYhYhYhSfSfWehSfUhShecheQYhYhYhYhachYhYhafhYhahfShXdfhShcihYaVhfYmfbihhQYhYhYhaddQShahfYhYhYhShYfYfYfafhQUhchfYhYhYhShechdUhUhcheUhUhcheUhUhcheUhUhcheUhUhWehUhUhcfeUhUhcfeUhUhcfeUhUhcfeUhUhehehUhUhcheUhUhcheUhUhcheUhUhWehUhUhcfeUhUhcfeUhUhcfeUhUhcfeUhUhWffUhWheQYhYhYhYhachQYiYhYhShYfYfYfYfShYhYhYhYhadeakiQSfSfSfUfShShShUfSfSfSfUfShShShUfSfSfSfcakQShShWfeQShShWeeQUhWfhUhShUfWjhQUfUfUfWfdQShShShWkhQUfUfUfchjQYhYhYhYhUfYfYfYeYhUfYhYhcifQYfYfYfYeQcffQYhYhYiYiYfcdhckjUfUfZfeYcciefhleiYhYcYhcfhYhcfhYhcifYhcfhYhcfhYhYcYh')
@@ -117,6 +148,11 @@ module.exports = function() {
   
   function bindEventsAndPlugins() {
     
+    $('#shareButton').click(function(e) {
+      e.preventDefault()
+      exports.share()
+      return false
+    })
     $('.color-picker .btn').click(function(e) {
       var target = $(e.currentTarget)
       var idx = +target.find('.color').attr('data-color')
@@ -426,20 +462,19 @@ module.exports = function() {
     switch( event.keyCode ) {
       case 189: zoom(100); break
       case 187: zoom(-100); break
-      case 49: setColor(0); break
-      case 50: setColor(1); break
-      case 51: setColor(2); break
-      case 52: setColor(3); break
-      case 53: setColor(4); break
-      case 54: setColor(5); break
-      case 55: setColor(6); break
-      case 56: setColor(7); break
-      case 57: setColor(8); break
-      case 48: setColor(9); break
+      case 49: exports.setColor(0); break
+      case 50: exports.setColor(1); break
+      case 51: exports.setColor(2); break
+      case 52: exports.setColor(3); break
+      case 53: exports.setColor(4); break
+      case 54: exports.setColor(5); break
+      case 55: exports.setColor(6); break
+      case 56: exports.setColor(7); break
+      case 57: exports.setColor(8); break
+      case 48: exports.setColor(9); break
       case 16: isShiftDown = true; break
       case 17: isCtrlDown = true; break
       case 18: isAltDown = true; break
-
     }
 
   }
@@ -581,7 +616,7 @@ module.exports = function() {
     return idx + (idx/3) | 0
   }
 
-  function exportImage(width, height) {
+  function getExportCanvas(width, height) {
     var canvas = document.createElement('canvas')
     var ctx = canvas.getContext('2d')
     var source = renderer.domElement
@@ -608,7 +643,12 @@ module.exports = function() {
     ctx.putImageData(imageData, 0, 0)
 
     onWindowResize()
-
+    
+    return canvas
+  }
+  
+  function exportImage(width, height) {
+    var canvas = getExportCanvas(width, height)
     var image = new Image
     image.src = canvas.toDataURL()
     return image

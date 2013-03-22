@@ -20,3 +20,9 @@ body {
 .pagination ul > li.next > a { margin-left: 4px !important; }
 .pagination { margin: 0 0 10px 0 !important; }
 .ui-slider-segment { margin: 3px -6px 0 33% !important; }
+.tile.controls p { margin: 0 0 5px 0 !important; text-align: left; }
+#welcome .hello { margin-left: 35px !important; }
+.share .tile-image.big-illustration { margin: 10px 0; }
+.share p { margin-bottom: 10px !important; }
+.voxel-share img { height: 300px; }
+.voxel-share textarea { display: none; }
