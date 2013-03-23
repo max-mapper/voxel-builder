@@ -70,6 +70,34 @@ module.exports = function() {
     window.location.replace( '#A/bfhkSfdihfShaefShahfShahhYfYfYfSfSfSfYhYhYhahjSdechjYhYhYhadfQUhchfYhYhSfYdQYhYhaefQYhYhYhYhSjcchQYhYhYhYhSfSfWehSfUhShecheQYhYhYhYhachYhYhafhYhahfShXdfhShcihYaVhfYmfbihhQYhYhYhaddQShahfYhYhYhShYfYfYfafhQUhchfYhYhYhShechdUhUhcheUhUhcheUhUhcheUhUhcheUhUhWehUhUhcfeUhUhcfeUhUhcfeUhUhcfeUhUhehehUhUhcheUhUhcheUhUhcheUhUhWehUhUhcfeUhUhcfeUhUhcfeUhUhcfeUhUhWffUhWheQYhYhYhYhachQYiYhYhShYfYfYfYfShYhYhYhYhadeakiQSfSfSfUfShShShUfSfSfSfUfShShShUfSfSfSfcakQShShWfeQShShWeeQUhWfhUhShUfWjhQUfUfUfWfdQShShShWkhQUfUfUfchjQYhYhYhYhUfYfYfYeYhUfYhYhcifQYfYfYfYeQcffQYhYhYiYiYfcdhckjUfUfZfeYcciefhleiYhYcYhcfhYhcfhYhcifYhcfhYhcfhYhYcYh')
     buildFromHash()
   }
+  
+  exports.browseTwitter = function() {
+    $('#browse').modal()
+    var content = $('#browse .demo-browser-content')
+    content.html('')
+    var links = $("iframe:first").contents().find('.tweet .e-entry-title a')
+    links = links.filter(function(i, link) {
+      var url = $(link).attr('data-expanded-url')
+      if (!url) return
+      if (url.match(/imgur/)) return true
+      return false
+    })
+    links = links.map(function(i, link) {
+      var url = $(link).attr('data-expanded-url')
+      content.append('<img src="' + url + '"/>')
+    })
+  }
+  
+  exports.getProxyImage = function(imgURL, cb) {
+    var withoutHTTP = imgURL.split('http://')[1]
+    var proxyURL = 'http://corsproxy.com/' + withoutHTTP // until imgur gets CORS on GETs
+    var img = new Image()
+    img.crossOrigin = ''
+    img.src = proxyURL
+    img.onload = function() {
+      cb(img)
+    }
+  }
 
   exports.export = function() {
     var voxels = updateHash()
@@ -158,11 +186,20 @@ module.exports = function() {
   
   function bindEventsAndPlugins() {
     
+    $('#browse img').live('click', function(ev) {
+      var url = $(ev.target).attr('src')
+      $('#browse button').click()
+      exports.getProxyImage(url, function(img) {
+        importImage(img)
+      })
+    })
+    
     $('#shareButton').click(function(e) {
       e.preventDefault()
       exports.share()
       return false
     })
+    
     $('.color-picker .btn').click(function(e) {
       var target = $(e.currentTarget)
       var idx = +target.find('.color').attr('data-color')
@@ -916,87 +953,6 @@ module.exports = {
 , bitsToString: bitsToString
 , stringToBits: stringToBits
 }
-
-},{}],6:[function(require,module,exports){function Share(opts) {
-  if (!(this instanceof Share)) return new Share(opts || {});
-  if (opts.THREE) opts = {game:opts};
-  if (!opts.key) throw new Error('Get a key: http://api.imgur.com/');
-  this.key      = opts.key;
-  this.game     = opts.game;
-  this.hashtags = opts.hashtags || '';
-  this.message  = opts.message || 'Greetings from voxel.js! @voxeljs';
-  this.type     = opts.type    || 'image/png';
-  this.quality  = opts.quality || 0.75;
-  this.opened   = false;
-}
-module.exports = Share;
-
-Share.prototype.open = function(append) {
-  this.close();
-  this.element = this.createElement();
-  append = append || document.body;
-  append.appendChild(this.element);
-  this.opened = true;
-};
-
-Share.prototype.close = function() {
-  if (this.element != null) {
-    this.element.parentNode.removeChild(this.element);
-  }
-  this.element = null;
-  this.opened = false;
-};
-
-Share.prototype.submit = function() {
-  var self = this;
-  var fd = new FormData();
-  fd.append('image', String(this.image.src).split(',')[1]);
-  if (this.message) fd.append('description', this.message);
-  var xhr = new XMLHttpRequest();
-  xhr.open('POST', 'https://api.imgur.com/3/upload');
-  var auth = 'Client-ID ' + this.key
-  xhr.setRequestHeader('Authorization', auth);
-  xhr.onload = function() {
-    // todo: error check
-    self.tweet(JSON.parse(xhr.responseText).data.link);
-    self.close();
-  };
-  xhr.send(fd);
-};
-
-Share.prototype.tweet = function(imgUrl) {
-  var url = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(this.message) + ' ' + imgUrl + '&hashtags=' + this.hashtags
-  window.open(url, 'twitter', 'width=550,height=450');
-};
-
-Share.prototype.createElement = function() {
-  var self = this;
-  var e = document.createElement('div');
-  e.className = 'voxel-share';
-
-  // create image
-  this.image = new Image();
-  this.game.renderer.render(this.game.scene, this.game.camera);
-  this.image.src = this.game.element.toDataURL(this.type, this.quality);
-  e.appendChild(this.image);
-
-  // create text input
-  var msgBox = document.createElement('textarea');
-  msgBox.value = this.message;
-  e.appendChild(msgBox);
-  setTimeout(function() { msgBox.focus(); }, 500);
-
-  // submit button
-  var button = document.createElement('button');
-  button.innerHTML = 'Upload Image';
-  e.appendChild(button);
-  button.onclick = function() {
-    this.innerHTML = 'Uploading...';
-    self.submit();
-  };
-
-  return e;
-};
 
 },{}],3:[function(require,module,exports){(function(){
 var window = window || {};
@@ -36804,6 +36760,87 @@ if (typeof exports !== 'undefined') {
 }
 
 })()
+},{}],6:[function(require,module,exports){function Share(opts) {
+  if (!(this instanceof Share)) return new Share(opts || {});
+  if (opts.THREE) opts = {game:opts};
+  if (!opts.key) throw new Error('Get a key: http://api.imgur.com/');
+  this.key      = opts.key;
+  this.game     = opts.game;
+  this.hashtags = opts.hashtags || '';
+  this.message  = opts.message || 'Greetings from voxel.js! @voxeljs';
+  this.type     = opts.type    || 'image/png';
+  this.quality  = opts.quality || 0.75;
+  this.opened   = false;
+}
+module.exports = Share;
+
+Share.prototype.open = function(append) {
+  this.close();
+  this.element = this.createElement();
+  append = append || document.body;
+  append.appendChild(this.element);
+  this.opened = true;
+};
+
+Share.prototype.close = function() {
+  if (this.element != null) {
+    this.element.parentNode.removeChild(this.element);
+  }
+  this.element = null;
+  this.opened = false;
+};
+
+Share.prototype.submit = function() {
+  var self = this;
+  var fd = new FormData();
+  fd.append('image', String(this.image.src).split(',')[1]);
+  if (this.message) fd.append('description', this.message);
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', 'https://api.imgur.com/3/upload');
+  var auth = 'Client-ID ' + this.key
+  xhr.setRequestHeader('Authorization', auth);
+  xhr.onload = function() {
+    // todo: error check
+    self.tweet(JSON.parse(xhr.responseText).data.link);
+    self.close();
+  };
+  xhr.send(fd);
+};
+
+Share.prototype.tweet = function(imgUrl) {
+  var url = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(this.message) + ' ' + imgUrl + '&hashtags=' + this.hashtags
+  window.open(url, 'twitter', 'width=550,height=450');
+};
+
+Share.prototype.createElement = function() {
+  var self = this;
+  var e = document.createElement('div');
+  e.className = 'voxel-share';
+
+  // create image
+  this.image = new Image();
+  this.game.renderer.render(this.game.scene, this.game.camera);
+  this.image.src = this.game.element.toDataURL(this.type, this.quality);
+  e.appendChild(this.image);
+
+  // create text input
+  var msgBox = document.createElement('textarea');
+  msgBox.value = this.message;
+  e.appendChild(msgBox);
+  setTimeout(function() { msgBox.focus(); }, 500);
+
+  // submit button
+  var button = document.createElement('button');
+  button.innerHTML = 'Upload Image';
+  e.appendChild(button);
+  button.onclick = function() {
+    this.innerHTML = 'Uploading...';
+    self.submit();
+  };
+
+  return e;
+};
+
 },{}],8:[function(require,module,exports){// shim for using process in browser
 
 var process = module.exports = {};
