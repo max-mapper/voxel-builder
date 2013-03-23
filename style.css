@@ -2,6 +2,7 @@ body {
   margin: 0px;
   overflow: hidden;
 }
+.hidden { display: none; }
 .share:before { content: none !important;}
 .share { width: 225px; }
 .colorAdd { width: 18px; height: 16px; display: block; }
@@ -22,7 +23,12 @@ body {
 .share p { margin-bottom: 10px !important; }
 .voxel-share img { height: 300px; }
 .voxel-share textarea { display: none; }
+
 .color-picker {white-space:normal;}
 
 .btn-group > .btn {border-radius:4px; margin-right:2px; margin-left:0; margin-top:1px;}
 .btn-group > .btn + .btn {margin-left:0;}
+
+#browse .demo-browser-content { background-color: transparent; }
+#browse .demo-browser-content img { border: 1px solid #7F8B97; }
+

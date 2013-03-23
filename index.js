@@ -69,6 +69,34 @@ module.exports = function() {
     window.location.replace( '#A/bfhkSfdihfShaefShahfShahhYfYfYfSfSfSfYhYhYhahjSdechjYhYhYhadfQUhchfYhYhSfYdQYhYhaefQYhYhYhYhSjcchQYhYhYhYhSfSfWehSfUhShecheQYhYhYhYhachYhYhafhYhahfShXdfhShcihYaVhfYmfbihhQYhYhYhaddQShahfYhYhYhShYfYfYfafhQUhchfYhYhYhShechdUhUhcheUhUhcheUhUhcheUhUhcheUhUhWehUhUhcfeUhUhcfeUhUhcfeUhUhcfeUhUhehehUhUhcheUhUhcheUhUhcheUhUhWehUhUhcfeUhUhcfeUhUhcfeUhUhcfeUhUhWffUhWheQYhYhYhYhachQYiYhYhShYfYfYfYfShYhYhYhYhadeakiQSfSfSfUfShShShUfSfSfSfUfShShShUfSfSfSfcakQShShWfeQShShWeeQUhWfhUhShUfWjhQUfUfUfWfdQShShShWkhQUfUfUfchjQYhYhYhYhUfYfYfYeYhUfYhYhcifQYfYfYfYeQcffQYhYhYiYiYfcdhckjUfUfZfeYcciefhleiYhYcYhcfhYhcfhYhcifYhcfhYhcfhYhYcYh')
     buildFromHash()
   }
+  
+  exports.browseTwitter = function() {
+    $('#browse').modal()
+    var content = $('#browse .demo-browser-content')
+    content.html('')
+    var links = $("iframe:first").contents().find('.tweet .e-entry-title a')
+    links = links.filter(function(i, link) {
+      var url = $(link).attr('data-expanded-url')
+      if (!url) return
+      if (url.match(/imgur/)) return true
+      return false
+    })
+    links = links.map(function(i, link) {
+      var url = $(link).attr('data-expanded-url')
+      content.append('<img src="' + url + '"/>')
+    })
+  }
+  
+  exports.getProxyImage = function(imgURL, cb) {
+    var withoutHTTP = imgURL.split('http://')[1]
+    var proxyURL = 'http://corsproxy.com/' + withoutHTTP // until imgur gets CORS on GETs
+    var img = new Image()
+    img.crossOrigin = ''
+    img.src = proxyURL
+    img.onload = function() {
+      cb(img)
+    }
+  }
 
   exports.export = function() {
     var voxels = updateHash()
@@ -229,11 +257,20 @@ module.exports = function() {
   
   function bindEventsAndPlugins() {
     
+    $('#browse img').live('click', function(ev) {
+      var url = $(ev.target).attr('src')
+      $('#browse button').click()
+      exports.getProxyImage(url, function(img) {
+        importImage(img)
+      })
+    })
+    
     $('#shareButton').click(function(e) {
       e.preventDefault()
       exports.share()
       return false
     })
+
     $('.colorPickButton').click(pickColor)
     $('.colorPickButton').on("contextmenu", updateColor)
     $('.colorAddButton').click(addColor)

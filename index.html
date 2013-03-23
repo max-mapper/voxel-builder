@@ -17,6 +17,7 @@
         <option value="noop" selected="selected">Actions</option>
         <option value="viewInstructions">View Instructions</option>
         <option value="loadExample">Load Example Bunny</option>
+        <option value="browseTwitter">See recent creations</option>
         <option value="share">Share on Twitter</option>
         <option value="export">Export PNG</option>
         <option value="reset">Reset</option>
@@ -148,6 +149,25 @@
       <div class="modal-footer">
         <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
       </div>
+    </div>
+    
+    <div id="browse" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="myModalLabel">Recent Creations</h3>
+      </div>
+      <div class="modal-body">
+        <div class="demo-browser-content">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+      </div>
+    </div>
+    
+    <div class="hidden">
+      <a class="twitter-timeline" href="https://twitter.com/search?q=%23voxelcritter" data-widget-id="315522378715238401">Tweets about "#voxelcritter"</a>
+      <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
     </div>
     
     <script type="text/javascript" src="flatui-deps.js"></script>
