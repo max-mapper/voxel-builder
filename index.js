@@ -162,6 +162,7 @@ module.exports = function() {
       colorBox.text('')
       base.before(clone)
       clone.click(pickColor)
+      clone.on("contextmenu", changeColor)
     }
 
     colorBox.parent().attr('data-color','#'+rgb2hex(colors[idx]))
@@ -193,12 +194,11 @@ module.exports = function() {
 
     updateHash()
 
-    updateColor(e)
+    updateColor(idx)
   }
 
-  function updateColor(e) {
-    var target = $(e.currentTarget)
-    var idx = +target.find('.color').attr('data-color')
+  function updateColor(idx) {
+    color = idx
     var picker = $('i[data-color="' + idx + '"]').parent().colorpicker('show')
 
     picker.on('changeColor', function(e) {
@@ -215,7 +215,12 @@ module.exports = function() {
       // todo:  add a better remove for the colorpicker.
       picker.unbind('click.colorpicker')
     })
+  }
 
+  function changeColor(e) {
+    var target = $(e.currentTarget)
+    var idx = +target.find('.color').attr('data-color')
+    updateColor(idx)
     return false // eat the event
   }
 
@@ -235,7 +240,7 @@ module.exports = function() {
       return false
     })
     $('.colorPickButton').click(pickColor)
-    $('.colorPickButton').on("contextmenu", updateColor)
+    $('.colorPickButton').on("contextmenu", changeColor)
     $('.colorAddButton').click(addColor)
 
     $('.toggle input').click(function(e) {
