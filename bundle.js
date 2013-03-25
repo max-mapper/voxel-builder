@@ -18,10 +18,10 @@ module.exports = function() {
   var cube = new THREE.CubeGeometry( 50, 50, 50 )
   var wireframe = true, fill = true
   
-  var colors = Array.prototype.slice.call(document.querySelectorAll('.color')).map(function(el) {
-    var rgb = getComputedStyle(el).backgroundColor
-    return rgb.match(/\d+/g).map(function(num) { return scale(num, 0, 255, 0, 1) })
-  })
+  var colors = ['2ECC71', '3498DB', '34495E', 'E67E22', 'ECF0F1'].map(function(c) { return hex2rgb(c) })
+  for( var c = 0; c < 5; c++ ) {
+    addColorToPalette(c)
+  }
 
   showWelcome()
   init()
@@ -161,16 +161,44 @@ module.exports = function() {
 
   function v2h(value) {
     value = parseInt(value).toString(16)
-    return value.length < 2 ? value + "0" : value
+    return value.length < 2 ? '0' + value : value
   }
   function rgb2hex(rgb) {
-    if (rgb.match(/^rgb/) == null) return rgb
-    var arr = rgb.match(/\d+/g)
-    return v2h(arr[0]) + v2h(arr[1]) + v2h(arr[2])
+    return v2h( rgb[ 0 ] * 255 ) + v2h( rgb[ 1 ] * 255 ) + v2h( rgb[ 2 ] * 255 );
+  }
+
+  function hex2rgb(hex) {
+    if(hex[0]=='#') hex = hex.substr(1)
+    return [parseInt(hex.substr(0,2), 16)/255, parseInt(hex.substr(2,2), 16)/255, parseInt(hex.substr(4,2), 16)/255]
   }
 
   function scale( x, fromLow, fromHigh, toLow, toHigh ) {
     return ( x - fromLow ) * ( toHigh - toLow ) / ( fromHigh - fromLow ) + toLow
+  }
+
+  function addColorToPalette(idx) {
+    // add a button to the group
+    var colorBox = $('i[data-color="' + idx + '"]')
+    if(!colorBox.length) {
+      var base = $('.colorAddButton')
+      var clone = base.clone()
+      clone.removeClass('colorAddButton')
+      clone.addClass('colorPickButton')
+      colorBox = clone.find('.colorAdd')
+      colorBox.removeClass('colorAdd')
+      colorBox.addClass('color')
+      colorBox.attr('data-color',idx)
+      colorBox.text('')
+      base.before(clone)
+      clone.click(pickColor)
+      clone.on("contextmenu", changeColor)
+    }
+
+    colorBox.parent().attr('data-color','#'+rgb2hex(colors[idx]))
+    colorBox.css('background',"#"+rgb2hex(colors[idx]))
+
+    if( color == idx && brush )
+      brush.children[0].material.color.setRGB(colors[idx][0], colors[idx][1], colors[idx][2])
   }
 
   function zoom(delta) {
@@ -182,6 +210,55 @@ module.exports = function() {
     if (delta < 0 && tooClose) return
     radius = distance // for mouse drag calculations to be correct
     camera.translateZ( delta )
+  }
+
+  function addColor(e) {
+    //add new color
+    colors.push([0.0,0.0,0.0])
+    idx = colors.length-1
+
+    color = idx;
+
+    addColorToPalette(idx)
+
+    updateHash()
+
+    updateColor(idx)
+  }
+
+  function updateColor(idx) {
+    color = idx
+    var picker = $('i[data-color="' + idx + '"]').parent().colorpicker('show')
+
+    picker.on('changeColor', function(e) {
+      colors[idx]=hex2rgb(e.color.toHex())
+      addColorToPalette(idx)
+
+      // todo:  better way to update color of existing blocks
+      scene.children
+        .filter(function(el) { return el.isVoxel })
+        .map(function(mesh) { scene.remove(mesh) })
+      buildFromHash('A')
+    })
+    picker.on('hide', function(e) {
+      // todo:  add a better remove for the colorpicker.
+      picker.unbind('click.colorpicker')
+    })
+  }
+
+  function changeColor(e) {
+    var target = $(e.currentTarget)
+    var idx = +target.find('.color').attr('data-color')
+    updateColor(idx)
+    return false // eat the event
+  }
+
+  function pickColor(e) {
+    var target = $(e.currentTarget)
+    var idx = +target.find('.color').attr('data-color')
+
+    color = idx
+    brush.children[0].material.color.setRGB(colors[idx][0], colors[idx][1], colors[idx][2])
   }
   
   function bindEventsAndPlugins() {
@@ -199,13 +276,17 @@ module.exports = function() {
       exports.share()
       return false
     })
-    
-    $('.color-picker .btn').click(function(e) {
-      var target = $(e.currentTarget)
-      var idx = +target.find('.color').attr('data-color')
-      color = idx
-      brush.children[0].material.color.setRGB(colors[idx][0], colors[idx][1], colors[idx][2])
-    })
+
+    // $('.color-picker .btn').click(function(e) {
+    //   var target = $(e.currentTarget)
+    //   var idx = +target.find('.color').attr('data-color')
+    //   color = idx
+    //   brush.children[0].material.color.setRGB(colors[idx][0], colors[idx][1], colors[idx][2])
+    // })
+
+    $('.colorPickButton').click(pickColor)
+    $('.colorPickButton').on("contextmenu", changeColor)
+    $('.colorAddButton').click(addColor)
 
     $('.toggle input').click(function(e) {
       // setTimeout ensures this fires after the input value changes
@@ -538,15 +619,32 @@ module.exports = function() {
   }
 
 
-  function buildFromHash() {
+  function buildFromHash(hashMask) {
 
     var hash = window.location.hash.substr( 1 ),
-    version = hash.substr( 0, 2 )
+    hashChunks = hash.split(':'),
+    chunks = {}
 
-    if ( version == "A/" ) {
+    for( var j = 0, n = hashChunks.length; j < n; j++ ) {
+      chunks[hashChunks[j][0]] = hashChunks[j].substr(2)
+    }
 
+    if ( (!hashMask || hashMask == 'C') && chunks['C'] )
+    {
+      // decode colors
+      var hexColors = chunks['C']
+      for(var c = 0, nC = hexColors.length/6; c < nC; c++) {
+        var hex = hexColors.substr(c*6,6)
+        colors[c] = hex2rgb(hex)
+
+        addColorToPalette(c)
+      }
+    }
+
+    if ( (!hashMask || hashMask == 'A') && chunks['A'] ) {
+      // decode geo
       var current = { x: 0, y: 0, z: 0, c: 0 }
-      var data = decode( hash.substr( 2 ) )
+      var data = decode( chunks['A'] )
       var i = 0, l = data.length
 
       while ( i < l ) {
@@ -572,8 +670,8 @@ module.exports = function() {
           scene.add( voxel )
         }
       }
-
     }
+
 
     updateHash()
 
@@ -595,6 +693,7 @@ module.exports = function() {
         current.z = ( object.position.z - 25 ) / 50
 
         var colorString = ['r', 'g', 'b'].map(function(col) { return object.children[0].material.color[col] }).join('')
+        // this string matching of floating point values to find an index seems a little sketchy
         for (var i = 0; i < colors.length; i++) if (colors[i].join('') === colorString) current.c = i
         voxels.push({x: current.x, y: current.y + 1, z: current.z , c: current.c + 1})
 
@@ -641,7 +740,14 @@ module.exports = function() {
 
     }
     data = encode( data )
-    window.location.replace("#A/" + data)
+
+    var cData = '';
+    for( var c in colors ) {
+      cData+=rgb2hex(colors[c]);
+    }
+
+    var outHash = "#"+(data.length?("A/" + data):'')+(data.length&&cData?':':'')+(cData?("C/"+cData):'')
+    window.location.replace(outHash)
     return voxels
   }
 
@@ -36764,13 +36870,12 @@ if (typeof exports !== 'undefined') {
   if (!(this instanceof Share)) return new Share(opts || {});
   if (opts.THREE) opts = {game:opts};
   if (!opts.key) throw new Error('Get a key: http://api.imgur.com/');
-  this.key      = opts.key;
-  this.game     = opts.game;
-  this.hashtags = opts.hashtags || '';
-  this.message  = opts.message || 'Greetings from voxel.js! @voxeljs';
-  this.type     = opts.type    || 'image/png';
-  this.quality  = opts.quality || 0.75;
-  this.opened   = false;
+  this.key     = opts.key;
+  this.game    = opts.game;
+  this.message = opts.message || 'Greetings from voxel.js! @voxeljs';
+  this.type    = opts.type    || 'image/png';
+  this.quality = opts.quality || 0.75;
+  this.opened  = false;
 }
 module.exports = Share;
 
@@ -36794,21 +36899,20 @@ Share.prototype.submit = function() {
   var self = this;
   var fd = new FormData();
   fd.append('image', String(this.image.src).split(',')[1]);
-  if (this.message) fd.append('description', this.message);
+  fd.append('key', this.key);
+  if (this.message) fd.append('caption', this.message);
   var xhr = new XMLHttpRequest();
-  xhr.open('POST', 'https://api.imgur.com/3/upload');
-  var auth = 'Client-ID ' + this.key
-  xhr.setRequestHeader('Authorization', auth);
+  xhr.open('POST', 'http://api.imgur.com/2/upload.json');
   xhr.onload = function() {
     // todo: error check
-    self.tweet(JSON.parse(xhr.responseText).data.link);
+    self.tweet(JSON.parse(xhr.responseText).upload.links.imgur_page);
     self.close();
   };
   xhr.send(fd);
 };
 
 Share.prototype.tweet = function(imgUrl) {
-  var url = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(this.message) + ' ' + imgUrl + '&hashtags=' + this.hashtags
+  var url = 'http://twitter.com/home?status=' + this.message + ' ' + imgUrl;
   window.open(url, 'twitter', 'width=550,height=450');
 };
 
