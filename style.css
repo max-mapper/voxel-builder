@@ -5,12 +5,8 @@ body {
 .hidden { display: none; }
 .share:before { content: none !important;}
 .share { width: 225px; }
+.colorAdd { width: 18px; height: 16px; display: block; }
 .color { width: 18px; height: 16px; display: block; }
-.color.one { background: #2ECC71; }
-.color.two { background: #3498DB; }
-.color.three { background: #34495E; }
-.color.four { background: #E67E22; }
-.color.five { background: #ECF0F1; }
 .demo-text-box { margin-right: 24px; }
 .demo-panel-title { margin-bottom: 10px !important; padding-top: 10px !important; }
 #instructions { width: 250px; position: absolute; top: 0px; right: 0px; }
@@ -27,5 +23,11 @@ body {
 .share p { margin-bottom: 10px !important; }
 .voxel-share img { height: 300px; }
 .voxel-share textarea { display: none; }
+
 #browse .demo-browser-content { background-color: transparent; }
 #browse .demo-browser-content img { border: 1px solid #7F8B97; }
+
+.color-picker {white-space:normal;}
+
+.btn-group > .btn {border-radius:4px; margin-right:2px; margin-left:0; margin-top:1px;}
+.btn-group > .btn + .btn {margin-left:0;}

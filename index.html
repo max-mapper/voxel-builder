@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <link href="flatui/css/bootstrap.css" rel="stylesheet">
     <link href="flatui/css/flat-ui.css" rel="stylesheet">
+    <link href="colorpicker/css/colorpicker.css" rel="stylesheet">
     <link href="style.css" rel="stylesheet">
     
   </head>
@@ -65,15 +66,14 @@
       
       <div class="row">
         <div class="span3">
-          <div class="btn-toolbar">
             <div class="btn-group color-picker">
-              <a class="btn btn-primary active" href="#"><i data-color="0" class="color one"></i></a>
-              <a class="btn btn-primary" href="#"><i data-color="1" class="color two"></i></a>
-              <a class="btn btn-primary" href="#"><i data-color="2" class="color three"></i></a>
-              <a class="btn btn-primary" href="#"><i data-color="3" class="color four"></i></a>
-              <a class="btn btn-primary" href="#"><i data-color="4" class="color five"></i></a>
+              <a class="btn btn-primary colorPickButton active" href="#"><i data-color="0" class="color"></i></a>
+              <a class="btn btn-primary colorPickButton" href="#"><i data-color="1" class="color"></i></a>
+              <a class="btn btn-primary colorPickButton" href="#"><i data-color="2" class="color"></i></a>
+              <a class="btn btn-primary colorPickButton" href="#"><i data-color="3" class="color"></i></a>
+              <a class="btn btn-primary colorPickButton" href="#"><i data-color="4" class="color"></i></a>
+              <a class="btn btn-primary colorAddButton" data-color="#000000" href="#"><i data-color="-1" class="colorAdd">++</i></a>
             </div>
-          </div> <!-- /toolbar -->
         </div>
       </div>
       <div class="share">
@@ -171,6 +171,7 @@
     </div>
     
     <script type="text/javascript" src="flatui-deps.js"></script>
+    <script type="text/javascript" src="colorpicker/js/bootstrap-colorpicker.js"></script>
     <script type="text/javascript" src="bundle.js"></script>
   </body>
 </html>
