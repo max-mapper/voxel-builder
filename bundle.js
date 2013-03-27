@@ -1,5 +1,7 @@
-;(function(e,t,n,r){function i(r){if(!n[r]){if(!t[r]){if(e)return e(r);throw new Error("Cannot find module '"+r+"'")}var s=n[r]={exports:{}};t[r][0](function(e){var n=t[r][1][e];return i(n?n:e)},s,s.exports)}return n[r].exports}for(var s=0;s<r.length;s++)i(r[s]);return i})(typeof require!=="undefined"&&require,{1:[function(require,module,exports){require('./')()
-},{"./":2}],2:[function(require,module,exports){var THREE = require('three')
+;(function(e,t,n){function i(n,s){if(!t[n]){if(!e[n]){var o=typeof require=="function"&&require;if(!s&&o)return o(n,!0);if(r)return r(n,!0);throw new Error("Cannot find module '"+n+"'")}var u=t[n]={exports:{}};e[n][0](function(t){var r=e[n][1][t];return i(r?r:t)},u,u.exports)}return t[n].exports}var r=typeof require=="function"&&require;for(var s=0;s<n.length;s++)i(n[s]);return i})({1:[function(require,module,exports){
+require('./')()
+},{"./":2}],2:[function(require,module,exports){
+var THREE = require('three')
 var raf = require('raf')
 var lsb = require('lsb')
 var voxelShare = require('voxel-share')
@@ -277,13 +279,6 @@ module.exports = function() {
       return false
     })
 
-    // $('.color-picker .btn').click(function(e) {
-    //   var target = $(e.currentTarget)
-    //   var idx = +target.find('.color').attr('data-color')
-    //   color = idx
-    //   brush.children[0].material.color.setRGB(colors[idx][0], colors[idx][1], colors[idx][2])
-    // })
-
     $('.colorPickButton').click(pickColor)
     $('.colorPickButton').on("contextmenu", changeColor)
     $('.colorAddButton').click(addColor)
@@ -460,7 +455,7 @@ module.exports = function() {
     camera.updateProjectionMatrix()
 
     renderer.setSize( window.innerWidth, window.innerHeight )
-
+    interact()
   }
 
   function getIntersecting() {
@@ -900,7 +895,8 @@ module.exports = function() {
   }
   
 }
-},{"three":3,"raf":4,"lsb":5,"voxel-share":6}],4:[function(require,module,exports){(function(){module.exports = raf
+},{"three":3,"raf":4,"lsb":5,"voxel-share":6}],4:[function(require,module,exports){
+(function(){module.exports = raf
 
 var EE = require('events').EventEmitter
   , global = typeof window === 'undefined' ? this : window
@@ -947,7 +943,8 @@ raf.polyfill = _raf
 raf.now = function() { return Date.now() }
 
 })()
-},{"events":7}],5:[function(require,module,exports){var spaceCode = ' '.charCodeAt(0)
+},{"events":7}],5:[function(require,module,exports){
+var spaceCode = ' '.charCodeAt(0)
 
 function stringToBits(str) {
   var bits = []
@@ -1060,7 +1057,8 @@ module.exports = {
 , stringToBits: stringToBits
 }
 
-},{}],3:[function(require,module,exports){(function(){
+},{}],3:[function(require,module,exports){
+(function(){
 var window = window || {};
 var self = self || {};
 /**
@@ -36866,16 +36864,18 @@ if (typeof exports !== 'undefined') {
 }
 
 })()
-},{}],6:[function(require,module,exports){function Share(opts) {
+},{}],6:[function(require,module,exports){
+function Share(opts) {
   if (!(this instanceof Share)) return new Share(opts || {});
   if (opts.THREE) opts = {game:opts};
   if (!opts.key) throw new Error('Get a key: http://api.imgur.com/');
-  this.key     = opts.key;
-  this.game    = opts.game;
-  this.message = opts.message || 'Greetings from voxel.js! @voxeljs';
-  this.type    = opts.type    || 'image/png';
-  this.quality = opts.quality || 0.75;
-  this.opened  = false;
+  this.key      = opts.key;
+  this.game     = opts.game;
+  this.hashtags = opts.hashtags || '';
+  this.message  = opts.message || 'Greetings from voxel.js! @voxeljs';
+  this.type     = opts.type    || 'image/png';
+  this.quality  = opts.quality || 0.75;
+  this.opened   = false;
 }
 module.exports = Share;
 
@@ -36899,20 +36899,21 @@ Share.prototype.submit = function() {
   var self = this;
   var fd = new FormData();
   fd.append('image', String(this.image.src).split(',')[1]);
-  fd.append('key', this.key);
-  if (this.message) fd.append('caption', this.message);
+  if (this.message) fd.append('description', this.message);
   var xhr = new XMLHttpRequest();
-  xhr.open('POST', 'http://api.imgur.com/2/upload.json');
+  xhr.open('POST', 'https://api.imgur.com/3/upload');
+  var auth = 'Client-ID ' + this.key
+  xhr.setRequestHeader('Authorization', auth);
   xhr.onload = function() {
     // todo: error check
-    self.tweet(JSON.parse(xhr.responseText).upload.links.imgur_page);
+    self.tweet(JSON.parse(xhr.responseText).data.link);
     self.close();
   };
   xhr.send(fd);
 };
 
 Share.prototype.tweet = function(imgUrl) {
-  var url = 'http://twitter.com/home?status=' + this.message + ' ' + imgUrl;
+  var url = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(this.message) + ' ' + imgUrl + '&hashtags=' + this.hashtags
   window.open(url, 'twitter', 'width=550,height=450');
 };
 
@@ -36945,7 +36946,8 @@ Share.prototype.createElement = function() {
   return e;
 };
 
-},{}],8:[function(require,module,exports){// shim for using process in browser
+},{}],8:[function(require,module,exports){
+// shim for using process in browser
 
 var process = module.exports = {};
 
@@ -36998,7 +37000,8 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],7:[function(require,module,exports){(function(process){if (!process.EventEmitter) process.EventEmitter = function () {};
+},{}],7:[function(require,module,exports){
+(function(process){if (!process.EventEmitter) process.EventEmitter = function () {};
 
 var EventEmitter = exports.EventEmitter = process.EventEmitter;
 var isArray = typeof Array.isArray === 'function'
@@ -37183,4 +37186,5 @@ EventEmitter.prototype.listeners = function(type) {
 };
 
 })(require("__browserify_process"))
-},{"__browserify_process":8}]},{},[1]);
+},{"__browserify_process":8}]},{},[1])
+;
