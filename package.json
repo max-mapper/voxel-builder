@@ -3,15 +3,16 @@
   "version": "0.0.1",
   "dependencies": {
     "three": "0.55.0",
-    "voxel-share": "0.1.0"
+    "voxel-share": "0.2.0"
   },
   "devDependencies": {
     "browservefy": "0.0.9",
     "three": "0.55.0",
     "raf": "0.0.1",
-    "lsb": "0.1.0"
+    "lsb": "0.1.0",
+    "beefy": "0.0.11"
   },
   "scripts": {
-    "start": "browservefy demo.js:bundle.js 8080"
+    "start": "beefy demo.js:bundle.js 8080"
   }
 }

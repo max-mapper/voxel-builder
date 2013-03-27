@@ -276,13 +276,6 @@ module.exports = function() {
       return false
     })
 
-    // $('.color-picker .btn').click(function(e) {
-    //   var target = $(e.currentTarget)
-    //   var idx = +target.find('.color').attr('data-color')
-    //   color = idx
-    //   brush.children[0].material.color.setRGB(colors[idx][0], colors[idx][1], colors[idx][2])
-    // })
-
     $('.colorPickButton').click(pickColor)
     $('.colorPickButton').on("contextmenu", changeColor)
     $('.colorAddButton').click(addColor)
@@ -459,7 +452,7 @@ module.exports = function() {
     camera.updateProjectionMatrix()
 
     renderer.setSize( window.innerWidth, window.innerHeight )
-
+    interact()
   }
 
   function getIntersecting() {
