@@ -18,10 +18,12 @@
         <option value="noop" selected="selected">Actions</option>
         <option value="viewInstructions">View Instructions</option>
         <option value="loadExample">Load Example Bunny</option>
-        <option value="browseTwitter">Recently Made Critters</option>
-        <option value="share">Share on Twitter</option>
+        <!-- <option value="browseTwitter">Recently Made Critters</option> -->
+        <option value="browseRecent">Recently Made Critters</option>
+        <option value="share">Publish + Share Critter</option>
         <option value="export">Export PNG</option>
         <option value="reset">Reset</option>
+        <option value="about">About</option>
       </select>
 
       <div class="share mrl">
@@ -65,7 +67,7 @@
         </ul>
       </div> <!-- /share -->
       
-      <div class="row">
+      <div class="row color-container">
         <div class="span3">
             <div class="btn-group color-picker">
               <a class="btn btn-primary colorPickButton active" href="#"><i data-color="0" class="color"></i></a>
@@ -79,10 +81,10 @@
       </div>
       <div class="share">
         <div class="tile">
-          <img class="tile-image big-illustration" alt="" src="flatui/images/illustrations/share.png" />
-          <h4>Put yer critter on twitter!</h4>
+          <img class="tile-image big-illustration" alt="" src="brain-share.png" />
+          <h4>Publish your critter!</h4>
           <p>Others will be able to download and view it.</p>
-          <a id="shareButton" class="btn btn-primary btn-large btn-block">Share on Twitter</a>
+          <a id="shareButton" class="btn btn-primary btn-large btn-block">Share critter</a>
         </div>
       </div>
       
@@ -128,9 +130,20 @@
     <div id="share" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-        <h3 id="myModalLabel">Share on Twitter</h3>
+        <h3 id="myModalLabel">Share Critter</h3>
       </div>
       <div class="modal-body">
+        <div class="control-group">
+          <input type="text" class="login-field name" value="" placeholder="Critter name (optional)"
+          id="login-name">
+        </div>
+        <div class="control-group">
+          <input type="text" class="login-field author" value="" placeholder="Author name (optional)"
+          id="login-pass">
+        </div>
+        
+        <div class="share-form"></div>
+        
       </div>
       <div class="modal-footer">
         <button class="btn btn-cancel" data-dismiss="modal" aria-hidden="true">Close</button>
@@ -166,10 +179,10 @@
       </div>
     </div>
     
-    <div class="hidden">
+    <!-- <div class="hidden">
       <a class="twitter-timeline" href="https://twitter.com/search?q=%23voxelcritter" data-widget-id="315522378715238401">Tweets about "#voxelcritter"</a>
       <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
-    </div>
+    </div> -->
     
     <script type="text/javascript" src="flatui-deps.js"></script>
     <script type="text/javascript" src="colorpicker/js/bootstrap-colorpicker.js"></script>

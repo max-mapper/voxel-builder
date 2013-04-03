@@ -2,6 +2,7 @@ var THREE = require('three')
 var raf = require('raf')
 var lsb = require('lsb')
 var voxelShare = require('voxel-share')
+var request = require('browser-request')
 
 module.exports = function() {
   var container
@@ -37,6 +38,10 @@ module.exports = function() {
     $('#welcome').modal()
   }
   
+  exports.about = function() {
+    $('#about').modal()
+  }
+  
   exports.share = function() {
     var fakeGame = {
       renderer: {
@@ -51,12 +56,26 @@ module.exports = function() {
       // api v3 key from imgur.com
       key: 'cda7e5d26c82bea',
       message: 'Check out my voxel critter! Made with ' + window.location.href,
-      hashtags: 'voxelcritter'
+      hashtags: 'voxelcritter',
+      afterUpload: function(link) {
+        request({
+          method: "POST",
+          url: "http://maxcors.jit.su/http://max.ic.ht/critters",
+          json: true,
+          body: {
+            link: link,
+            author: $('#share .author').val(),
+            name: $('#share .name').val()
+          }
+        }, function(err, resp, body) {
+          shareDialog.close()
+          window.open(link)
+        })
+      }
     })
     $('#share .modal-footer .btn-primary').remove()
     $('#share').modal()
-    var modalBody = $('#share .modal-body')
-    modalBody.html('This photo will be attached to your tweet after you fill out a tweet form.')
+    var modalBody = $('#share .modal-body .share-form')
     shareDialog.open(modalBody[0])
     $('#share .voxel-share button').addClass('btn btn-primary').prependTo($('#share .modal-footer'))
     shareDialog.close = function() {
@@ -87,9 +106,29 @@ module.exports = function() {
     })
   }
   
+  exports.browseRecent = function() {
+    $('#browse').modal()
+    var content = $('#browse .demo-browser-content')
+    content.html('<p>Loading...</p>')
+    request({ 
+        url: 'http://maxcors.jit.su/http://max.ic.ht/critters/_all_docs?include_docs=true', 
+        json: true
+      }, function(err, resp, data) {
+      if (err) {
+        alert('error loading recent creations')
+        $('#browse .modal-footer .btn-cancel').click()
+        return
+      }
+      content.html('')
+      data.rows.map(function(row) {
+        if (!row || !row.doc) return
+        if (row.doc.link && row.doc.link.match(/imgur/)) content.append('<img src="' + row.doc.link + '"/>')
+      })
+    })
+  }
+  
   exports.getProxyImage = function(imgURL, cb) {
-    var withoutHTTP = imgURL.split('http://')[1]
-    var proxyURL = 'http://corsproxy.com/' + withoutHTTP // until imgur gets CORS on GETs
+    var proxyURL = 'http://maxcors.jit.su/' + imgURL // until imgur gets CORS on GETs
     var img = new Image()
     img.crossOrigin = ''
     img.src = proxyURL

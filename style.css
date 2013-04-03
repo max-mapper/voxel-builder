@@ -21,8 +21,12 @@ body {
 #welcome .hello { margin-left: 35px !important; }
 .share .tile-image.big-illustration { margin: 10px 0; }
 .share p { margin-bottom: 10px !important; }
-.voxel-share img { height: 300px; }
+.voxel-share img { height: 200px; }
 .voxel-share textarea { display: none; }
+.dk_options_inner, .dk_touch .dk_options { max-height: 300px !important; }
+.color-container { margin: 5px 0 5px -20px; }
+.modal-body .control-group .login-field { width: 248px !important; }
+.modal-body .control-group { display: inline-block; }
 
 #browse .demo-browser-content { background-color: transparent; }
 #browse .demo-browser-content img { border: 1px solid #7F8B97; }
