@@ -68,7 +68,8 @@ module.exports = function() {
           body: {
             link: link,
             author: $('#share .author').val(),
-            name: $('#share .name').val()
+            name: $('#share .name').val(),
+            date: new Date()
           }
         }, function(err, resp, body) {
           shareDialog.close()
