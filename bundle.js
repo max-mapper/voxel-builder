@@ -1,6 +1,1342 @@
-;(function(e,t,n){function i(n,s){if(!t[n]){if(!e[n]){var o=typeof require=="function"&&require;if(!s&&o)return o(n,!0);if(r)return r(n,!0);throw new Error("Cannot find module '"+n+"'")}var u=t[n]={exports:{}};e[n][0](function(t){var r=e[n][1][t];return i(r?r:t)},u,u.exports)}return t[n].exports}var r=typeof require=="function"&&require;for(var s=0;s<n.length;s++)i(n[s]);return i})({1:[function(require,module,exports){
+;(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 require('./')()
-},{"./":2}],3:[function(require,module,exports){
+},{"./":2}],2:[function(require,module,exports){
+var THREE = require('three')
+var raf = require('raf')
+var lsb = require('lsb')
+var voxelShare = require('voxel-share')
+var request = require('browser-request')
+
+module.exports = function() {
+  var container
+  var camera, renderer, brush
+  var projector, plane, scene, grid, shareDialog
+  var mouse2D, mouse3D, raycaster, objectHovered
+  var isShiftDown = false, isCtrlDown = false, isMouseDown = false, isAltDown = false
+  var onMouseDownPosition = new THREE.Vector2(), onMouseDownPhi = 60, onMouseDownTheta = 45
+  var radius = 1600, theta = 90, phi = 60
+  var target = new THREE.Vector3( 0, 200, 0 )
+  var color = 0
+  var CubeMaterial = THREE.MeshBasicMaterial
+  var cube = new THREE.CubeGeometry( 50, 50, 50 )
+  var wireframeCube = new THREE.CubeGeometry(50.5, 50.5 , 50.5)
+  var wireframe = true, fill = true
+  var wireframeOptions = { color: 0x000000, wireframe: true, wireframeLinewidth: 1, opacity: 0.8 }
+  var wireframeMaterial = new THREE.MeshBasicMaterial(wireframeOptions)
+  
+  var colors = ['2ECC71', '3498DB', '34495E', 'E67E22', 'ECF0F1'].map(function(c) { return hex2rgb(c) })
+  for( var c = 0; c < 5; c++ ) {
+    addColorToPalette(c)
+  }
+
+  showWelcome()
+  init()
+  raf(window).on('data', render)
+  
+  function showWelcome() {
+    var seenWelcome = localStorage.getItem('seenWelcome')
+    if (seenWelcome) return
+    $('#welcome').modal()
+    localStorage.setItem('seenWelcome', true)
+  }
+
+  exports.viewInstructions = function() {
+    $('#welcome').modal()
+  }
+  
+  exports.about = function() {
+    $('#about').modal()
+  }
+  
+  exports.share = function() {
+    var fakeGame = {
+      renderer: {
+        render: function() {}
+      },
+      scene: {},
+      camera: {},
+      element: getExportCanvas(800, 600)
+    }
+    shareDialog = voxelShare({
+      game: fakeGame,
+      // api v3 key from imgur.com
+      key: 'cda7e5d26c82bea',
+      message: 'Check out my voxel critter! Made with ' + window.location.href,
+      hashtags: 'voxelcritter',
+      afterUpload: function(link) {
+        request({
+          method: "POST",
+          url: "http://maxcors.jit.su/http://max.ic.ht/critters",
+          json: true,
+          body: {
+            link: link,
+            author: $('#share .author').val(),
+            name: $('#share .name').val(),
+            date: new Date()
+          }
+        }, function(err, resp, body) {
+          shareDialog.close()
+          window.open(link)
+        })
+      }
+    })
+    $('#share .modal-footer .btn-primary').remove()
+    $('#share').modal()
+    var modalBody = $('#share .modal-body .share-form')
+    shareDialog.open(modalBody[0])
+    $('#share .voxel-share button').addClass('btn btn-primary').prependTo($('#share .modal-footer'))
+    shareDialog.close = function() {
+      $('#share .modal-footer .btn-cancel').click()
+    }
+  }
+  
+  // bunny
+  exports.loadExample = function() {
+    window.location.replace( '#A/bfhkSfdihfShaefShahfShahhYfYfYfSfSfSfYhYhYhahjSdechjYhYhYhadfQUhchfYhYhSfYdQYhYhaefQYhYhYhYhSjcchQYhYhYhYhSfSfWehSfUhShecheQYhYhYhYhachYhYhafhYhahfShXdfhShcihYaVhfYmfbihhQYhYhYhaddQShahfYhYhYhShYfYfYfafhQUhchfYhYhYhShechdUhUhcheUhUhcheUhUhcheUhUhcheUhUhWehUhUhcfeUhUhcfeUhUhcfeUhUhcfeUhUhehehUhUhcheUhUhcheUhUhcheUhUhWehUhUhcfeUhUhcfeUhUhcfeUhUhcfeUhUhWffUhWheQYhYhYhYhachQYiYhYhShYfYfYfYfShYhYhYhYhadeakiQSfSfSfUfShShShUfSfSfSfUfShShShUfSfSfSfcakQShShWfeQShShWeeQUhWfhUhShUfWjhQUfUfUfWfdQShShShWkhQUfUfUfchjQYhYhYhYhUfYfYfYeYhUfYhYhcifQYfYfYfYeQcffQYhYhYiYiYfcdhckjUfUfZfeYcciefhleiYhYcYhcfhYhcfhYhcifYhcfhYhcfhYhYcYh')
+    buildFromHash()
+  }
+  
+  exports.browseTwitter = function() {
+    $('#browse').modal()
+    var content = $('#browse .demo-browser-content')
+    content.html('')
+    var links = $("iframe:first").contents().find('.tweet .e-entry-title a')
+    links = links.filter(function(i, link) {
+      var url = $(link).attr('data-expanded-url')
+      if (!url) return
+      if (url.match(/imgur/)) return true
+      return false
+    })
+    links = links.map(function(i, link) {
+      var url = $(link).attr('data-expanded-url')
+      content.append('<img src="' + url + '"/>')
+    })
+  }
+  
+  exports.browseRecent = function() {
+    $('#browse').modal()
+    var content = $('#browse .demo-browser-content')
+    content.html('<p>Loading...</p>')
+    request({ 
+        url: 'http://maxcors.jit.su/http://max.ic.ht/critters/_all_docs?include_docs=true', 
+        json: true
+      }, function(err, resp, data) {
+      if (err) {
+        alert('error loading recent creations')
+        $('#browse .modal-footer .btn-cancel').click()
+        return
+      }
+      content.html('')
+      data.rows.map(function(row) {
+        if (!row || !row.doc) return
+        if (row.doc.link && row.doc.link.match(/imgur/)) content.append('<img src="' + row.doc.link + '"/>')
+      })
+    })
+  }
+  
+  exports.getProxyImage = function(imgURL, cb) {
+    var proxyURL = 'http://maxcors.jit.su/' + imgURL // until imgur gets CORS on GETs
+    var img = new Image()
+    img.crossOrigin = ''
+    img.src = proxyURL
+    img.onload = function() {
+      cb(img)
+    }
+  }
+
+  exports.export = function() {
+    var voxels = updateHash()
+    if (voxels.length === 0) return
+    window.open(exportImage(800, 600).src, 'voxel-painter-window')
+  }
+
+  exports.reset = function() {
+    window.location.replace('#/')
+    scene.children
+      .filter(function(el) { return el.isVoxel })
+      .map(function(mesh) { scene.remove(mesh) })
+  }
+
+  exports.setColor = function(idx) {
+    $('i[data-color="' + idx + '"]').click()
+  }
+
+  exports.setWireframe = function(bool) {
+    wireframe = bool
+    scene.children
+      .filter(function(el) { return el.isVoxel })
+      .map(function(mesh) { mesh.wireMesh.visible = bool })
+  }
+
+  exports.setFill = function(bool) {
+    fill = bool
+    scene.children
+      .filter(function(el) { return el.isVoxel })
+      .map(function(mesh) { mesh.material.visible = bool })
+  }
+
+  exports.showGrid = function(bool) {
+    grid.material.visible = bool
+  }
+
+  exports.setShadows = function(bool) {
+    if (bool) CubeMaterial = THREE.MeshLambertMaterial
+    else CubeMaterial = THREE.MeshBasicMaterial
+    scene.children
+      .filter(function(el) { return el !== brush && el.isVoxel })
+      .map(function(cube) { scene.remove(cube) })
+    buildFromHash()
+  }
+
+  function addVoxel() {
+    if (brush.position.y === 2000) return
+    var cubeMaterial = new CubeMaterial( { vertexColors: THREE.VertexColors, transparent: true } )
+    cubeMaterial.color.setRGB( colors[color][0], colors[color][1], colors[color][2] )
+    var voxel = new THREE.Mesh( cube, cubeMaterial )
+    voxel.wireMesh = new THREE.Mesh( wireframeCube, wireframeMaterial )
+    voxel.isVoxel = true
+    voxel.position.copy(brush.position)
+    voxel.wireMesh.position.copy(voxel.position)
+    voxel.overdraw = true
+    voxel.matrixAutoUpdate = false
+    voxel.updateMatrix()
+    scene.add( voxel )
+    scene.add( voxel.wireMesh )
+  }
+
+  function v2h(value) {
+    value = parseInt(value).toString(16)
+    return value.length < 2 ? '0' + value : value
+  }
+  function rgb2hex(rgb) {
+    return v2h( rgb[ 0 ] * 255 ) + v2h( rgb[ 1 ] * 255 ) + v2h( rgb[ 2 ] * 255 );
+  }
+
+  function hex2rgb(hex) {
+    if(hex[0]=='#') hex = hex.substr(1)
+    return [parseInt(hex.substr(0,2), 16)/255, parseInt(hex.substr(2,2), 16)/255, parseInt(hex.substr(4,2), 16)/255]
+  }
+
+  function scale( x, fromLow, fromHigh, toLow, toHigh ) {
+    return ( x - fromLow ) * ( toHigh - toLow ) / ( fromHigh - fromLow ) + toLow
+  }
+
+  function addColorToPalette(idx) {
+    // add a button to the group
+    var colorBox = $('i[data-color="' + idx + '"]')
+    if(!colorBox.length) {
+      var base = $('.colorAddButton')
+      var clone = base.clone()
+      clone.removeClass('colorAddButton')
+      clone.addClass('colorPickButton')
+      colorBox = clone.find('.colorAdd')
+      colorBox.removeClass('colorAdd')
+      colorBox.addClass('color')
+      colorBox.attr('data-color',idx)
+      colorBox.text('')
+      base.before(clone)
+      clone.click(pickColor)
+      clone.on("contextmenu", changeColor)
+    }
+
+    colorBox.parent().attr('data-color','#'+rgb2hex(colors[idx]))
+    colorBox.css('background',"#"+rgb2hex(colors[idx]))
+
+    if( color == idx && brush )
+      brush.children[0].material.color.setRGB(colors[idx][0], colors[idx][1], colors[idx][2])
+  }
+
+  function zoom(delta) {
+    var origin = {x: 0, y: 0, z: 0}
+    var distance = camera.position.distanceTo(origin)
+    var tooFar = distance  > 2000
+    var tooClose = distance < 300
+    if (delta > 0 && tooFar) return
+    if (delta < 0 && tooClose) return
+    radius = distance // for mouse drag calculations to be correct
+    camera.translateZ( delta )
+  }
+
+  function addColor(e) {
+    //add new color
+    colors.push([0.0,0.0,0.0])
+    idx = colors.length-1
+
+    color = idx;
+
+    addColorToPalette(idx)
+
+    updateHash()
+
+    updateColor(idx)
+  }
+
+  function updateColor(idx) {
+    color = idx
+    var picker = $('i[data-color="' + idx + '"]').parent().colorpicker('show')
+
+    picker.on('changeColor', function(e) {
+      colors[idx]=hex2rgb(e.color.toHex())
+      addColorToPalette(idx)
+
+      // todo:  better way to update color of existing blocks
+      scene.children
+        .filter(function(el) { return el.isVoxel })
+        .map(function(mesh) { scene.remove(mesh) })
+      buildFromHash('A')
+    })
+    picker.on('hide', function(e) {
+      // todo:  add a better remove for the colorpicker.
+      picker.unbind('click.colorpicker')
+    })
+  }
+
+  function changeColor(e) {
+    var target = $(e.currentTarget)
+    var idx = +target.find('.color').attr('data-color')
+    updateColor(idx)
+    return false // eat the event
+  }
+
+  function pickColor(e) {
+    var target = $(e.currentTarget)
+    var idx = +target.find('.color').attr('data-color')
+
+    color = idx
+    brush.children[0].material.color.setRGB(colors[idx][0], colors[idx][1], colors[idx][2])
+  }
+  
+  function bindEventsAndPlugins() {
+    
+    $('#browse img').live('click', function(ev) {
+      var url = $(ev.target).attr('src')
+      $('#browse button').click()
+      exports.getProxyImage(url, function(img) {
+        importImage(img)
+      })
+    })
+    
+    $('#shareButton').click(function(e) {
+      e.preventDefault()
+      exports.share()
+      return false
+    })
+
+    $('.colorPickButton').click(pickColor)
+    $('.colorPickButton').on("contextmenu", changeColor)
+    $('.colorAddButton').click(addColor)
+
+    $('.toggle input').click(function(e) {
+      // setTimeout ensures this fires after the input value changes
+      setTimeout(function() {
+        var el = $(e.target).parent()
+        var state = !el.hasClass('toggle-off')
+        exports[el.attr('data-action')](state)
+      }, 0)
+    })
+
+    var actionsMenu = $(".actionsMenu")
+    actionsMenu.dropkick({
+      change: function(value, label) {
+        if (value === 'noop') return
+        if (value in exports) exports[value]()
+        setTimeout(function() {
+          actionsMenu.dropkick('reset')
+        }, 0)
+      }
+    })
+    
+    // Todo list
+    $(".todo li").click(function() {
+        $(this).toggleClass("todo-done");
+    });
+
+    // Init tooltips
+    $("[data-toggle=tooltip]").tooltip("show");
+
+    // Init tags input
+    $("#tagsinput").tagsInput();
+
+    // Init jQuery UI slider
+    $("#slider").slider({
+        min: 1,
+        max: 4,
+        value: 1,
+        orientation: "horizontal",
+        range: "min",
+    });
+
+    // JS input/textarea placeholder
+    $("input, textarea").placeholder();
+
+    // Make pagination demo work
+    $(".pagination a").click(function() {
+        if (!$(this).parent().hasClass("previous") && !$(this).parent().hasClass("next")) {
+            $(this).parent().siblings("li").removeClass("active");
+            $(this).parent().addClass("active");
+        }
+    });
+
+    $(".btn-group a").click(function() {
+        $(this).siblings().removeClass("active");
+        $(this).addClass("active");
+    });
+
+    // Disable link click not scroll top
+    $("a[href='#']").click(function() {
+        return false
+    });
+
+  }
+
+  function init() {
+    
+    bindEventsAndPlugins()
+    setupImageDropImport(document.body)
+
+    container = document.createElement( 'div' )
+    document.body.appendChild( container )
+
+    camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 10000 )
+    camera.position.x = radius * Math.sin( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
+    camera.position.y = radius * Math.sin( phi * Math.PI / 360 )
+    camera.position.z = radius * Math.cos( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
+
+    scene = new THREE.Scene()
+
+    // Grid
+
+    var size = 500, step = 50
+
+    var geometry = new THREE.Geometry()
+
+    for ( var i = - size; i <= size; i += step ) {
+
+      geometry.vertices.push( new THREE.Vector3( - size, 0, i ) )
+      geometry.vertices.push( new THREE.Vector3(   size, 0, i ) )
+
+      geometry.vertices.push( new THREE.Vector3( i, 0, - size ) )
+      geometry.vertices.push( new THREE.Vector3( i, 0,   size ) )
+
+    }
+
+    var material = new THREE.LineBasicMaterial( { color: 0x000000, opacity: 0.2 } )
+
+    var line = new THREE.Line( geometry, material )
+    line.type = THREE.LinePieces
+    grid = line
+    scene.add( line )
+
+    // Plane
+
+    projector = new THREE.Projector()
+
+    plane = new THREE.Mesh( new THREE.PlaneGeometry( 1000, 1000 ), new THREE.MeshBasicMaterial() )
+    plane.rotation.x = - Math.PI / 2
+    plane.visible = false
+    plane.isPlane = true
+    scene.add( plane )
+
+    mouse2D = new THREE.Vector3( 0, 10000, 0.5 )
+
+    // Brush
+    
+    var brushMaterials = [
+      new CubeMaterial( { vertexColors: THREE.VertexColors, opacity: 0.5, transparent: true } ),
+      new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } )
+    ]
+    brushMaterials[0].color.setRGB(colors[0][0], colors[0][1], colors[0][2])
+    brush = THREE.SceneUtils.createMultiMaterialObject( cube, brushMaterials )
+    
+    brush.isBrush = true
+    brush.position.y = 2000
+    brush.overdraw = false
+    scene.add( brush )
+
+    // Lights
+
+    var ambientLight = new THREE.AmbientLight( 0x606060 )
+    scene.add( ambientLight )
+
+    var directionalLight = new THREE.DirectionalLight( 0xffffff )
+    directionalLight.position.x = Math.random() - 0.5
+    directionalLight.position.y = Math.random() - 0.5
+    directionalLight.position.z = Math.random() - 0.5
+    directionalLight.position.normalize()
+    scene.add( directionalLight )
+
+    var directionalLight = new THREE.DirectionalLight( 0x808080 )
+    directionalLight.position.x = Math.random() - 0.5
+    directionalLight.position.y = Math.random() - 0.5
+    directionalLight.position.z = Math.random() - 0.5
+    directionalLight.position.normalize()
+    scene.add( directionalLight )
+
+    var hasWebGL =  ( function () { try { return !! window.WebGLRenderingContext && !! document.createElement( 'canvas' ).getContext( 'experimental-webgl' ); } catch( e ) { return false; } } )()
+
+    if (hasWebGL) renderer = new THREE.WebGLRenderer({antialias: true})
+    else renderer = new THREE.CanvasRenderer()
+
+    renderer.setSize( window.innerWidth, window.innerHeight )
+
+    container.appendChild(renderer.domElement)
+
+    renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false )
+    renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false )
+    renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false )
+    document.addEventListener( 'keydown', onDocumentKeyDown, false )
+    document.addEventListener( 'keyup', onDocumentKeyUp, false )
+    window.addEventListener('DOMMouseScroll', mousewheel, false);
+    window.addEventListener('mousewheel', mousewheel, false);
+
+    function mousewheel( event ) {
+      zoom(event.wheelDeltaY)
+    }
+
+    window.addEventListener( 'resize', onWindowResize, false )
+
+    if ( window.location.hash ) buildFromHash()
+
+  }
+
+  function onWindowResize() {
+
+    camera.aspect = window.innerWidth / window.innerHeight
+    camera.updateProjectionMatrix()
+
+    renderer.setSize( window.innerWidth, window.innerHeight )
+    interact()
+  }
+
+  function getIntersecting() {
+    var intersectable = []
+    scene.children.map(function(c) { if (c.isVoxel || c.isPlane) intersectable.push(c); })
+    var intersections = raycaster.intersectObjects( intersectable )
+    if (intersections.length > 0) {
+      var intersect = intersections[ 0 ].object.isBrush ? intersections[ 1 ] : intersections[ 0 ]
+      return intersect
+    }
+  }
+
+  function interact() {
+    if (typeof raycaster === 'undefined') return
+
+    if ( objectHovered ) {
+      objectHovered.material.opacity = 1
+      objectHovered = null
+    }
+
+    var intersect = getIntersecting()
+    
+    if ( intersect ) {
+      var normal = intersect.face.normal.clone()
+      normal.applyMatrix4( intersect.object.matrixRotationWorld )
+      var position = new THREE.Vector3().addVectors( intersect.point, normal )
+      var newCube = [Math.floor( position.x / 50 ), Math.floor( position.y / 50 ), Math.floor( position.z / 50 )]
+
+      function updateBrush() {
+        brush.position.x = Math.floor( position.x / 50 ) * 50 + 25
+        brush.position.y = Math.floor( position.y / 50 ) * 50 + 25
+        brush.position.z = Math.floor( position.z / 50 ) * 50 + 25
+      }
+
+      if (isAltDown) {
+        if (!brush.currentCube) brush.currentCube = newCube
+        if (brush.currentCube.join('') !== newCube.join('')) {
+          if ( isShiftDown ) {
+            if ( intersect.object !== plane ) {
+              scene.remove( intersect.object.wireMesh )
+              scene.remove( intersect.object )
+            }
+          } else {
+            addVoxel()
+          }
+        }
+        updateBrush()
+        updateHash()
+        return brush.currentCube = newCube
+      } else if ( isShiftDown ) {
+        if ( intersect.object !== plane ) {
+          objectHovered = intersect.object
+          objectHovered.material.opacity = 0.5
+          brush.position.y = 2000
+          return
+        }
+      } else {
+        updateBrush()
+        return
+      }
+    }
+    brush.position.y = 2000
+  }
+
+  function onDocumentMouseMove( event ) {
+
+    event.preventDefault()
+
+    if ( isMouseDown ) {
+
+      theta = - ( ( event.clientX - onMouseDownPosition.x ) * 0.5 ) + onMouseDownTheta
+      phi = ( ( event.clientY - onMouseDownPosition.y ) * 0.5 ) + onMouseDownPhi
+
+      phi = Math.min( 180, Math.max( 0, phi ) )
+
+      camera.position.x = radius * Math.sin( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
+      camera.position.y = radius * Math.sin( phi * Math.PI / 360 )
+      camera.position.z = radius * Math.cos( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
+      camera.updateMatrix()
+
+    }
+
+    mouse2D.x = ( event.clientX / window.innerWidth ) * 2 - 1
+    mouse2D.y = - ( event.clientY / window.innerHeight ) * 2 + 1
+
+    interact()
+  }
+
+  function onDocumentMouseDown( event ) {
+    event.preventDefault()
+    isMouseDown = true
+    onMouseDownTheta = theta
+    onMouseDownPhi = phi
+    onMouseDownPosition.x = event.clientX
+    onMouseDownPosition.y = event.clientY
+  }
+
+  function onDocumentMouseUp( event ) {
+    event.preventDefault()
+    isMouseDown = false
+    onMouseDownPosition.x = event.clientX - onMouseDownPosition.x
+    onMouseDownPosition.y = event.clientY - onMouseDownPosition.y
+
+    if ( onMouseDownPosition.length() > 5 ) return
+
+    var intersect = getIntersecting()
+
+    if ( intersect ) {
+
+      if ( isShiftDown ) {
+
+        if ( intersect.object != plane ) {
+
+          scene.remove( intersect.object.wireMesh )
+          scene.remove( intersect.object )
+
+        }
+      } else {
+        addVoxel()
+      }
+
+    }
+
+
+    updateHash()
+    render()
+    interact()
+  }
+
+  function onDocumentKeyDown( event ) {
+    switch( event.keyCode ) {
+      case 189: zoom(100); break
+      case 187: zoom(-100); break
+      case 49: exports.setColor(0); break
+      case 50: exports.setColor(1); break
+      case 51: exports.setColor(2); break
+      case 52: exports.setColor(3); break
+      case 53: exports.setColor(4); break
+      case 54: exports.setColor(5); break
+      case 55: exports.setColor(6); break
+      case 56: exports.setColor(7); break
+      case 57: exports.setColor(8); break
+      case 48: exports.setColor(9); break
+      case 16: isShiftDown = true; break
+      case 17: isCtrlDown = true; break
+      case 18: isAltDown = true; break
+    }
+
+  }
+
+  function onDocumentKeyUp( event ) {
+
+    switch( event.keyCode ) {
+
+      case 16: isShiftDown = false; break
+      case 17: isCtrlDown = false; break
+      case 18: isAltDown = false; break
+
+    }
+  }
+
+
+  function buildFromHash(hashMask) {
+
+    var hash = window.location.hash.substr( 1 ),
+    hashChunks = hash.split(':'),
+    chunks = {}
+
+    for( var j = 0, n = hashChunks.length; j < n; j++ ) {
+      chunks[hashChunks[j][0]] = hashChunks[j].substr(2)
+    }
+
+    if ( (!hashMask || hashMask == 'C') && chunks['C'] )
+    {
+      // decode colors
+      var hexColors = chunks['C']
+      for(var c = 0, nC = hexColors.length/6; c < nC; c++) {
+        var hex = hexColors.substr(c*6,6)
+        colors[c] = hex2rgb(hex)
+
+        addColorToPalette(c)
+      }
+    }
+
+    if ( (!hashMask || hashMask == 'A') && chunks['A'] ) {
+      // decode geo
+      var current = { x: 0, y: 0, z: 0, c: 0 }
+      var data = decode( chunks['A'] )
+      var i = 0, l = data.length
+
+      while ( i < l ) {
+
+        var code = data[ i ++ ].toString( 2 )
+        if ( code.charAt( 1 ) == "1" ) current.x += data[ i ++ ] - 32
+        if ( code.charAt( 2 ) == "1" ) current.y += data[ i ++ ] - 32
+        if ( code.charAt( 3 ) == "1" ) current.z += data[ i ++ ] - 32
+        if ( code.charAt( 4 ) == "1" ) current.c += data[ i ++ ] - 32
+        if ( code.charAt( 0 ) == "1" ) {
+          var cubeMaterial = new CubeMaterial( { vertexColors: THREE.VertexColors, transparent: true } )
+          var col = colors[current.c] || colors[0]
+          cubeMaterial.color.setRGB( col[0], col[1], col[2] )
+          var voxel = new THREE.Mesh( cube, cubeMaterial )
+          voxel.wireMesh = new THREE.Mesh( wireframeCube, wireframeMaterial )
+          voxel.isVoxel = true
+          voxel.position.x = current.x * 50 + 25
+          voxel.position.y = current.y * 50 + 25
+          voxel.position.z = current.z * 50 + 25
+          voxel.wireMesh.position.copy(voxel.position)
+          voxel.overdraw = true
+          scene.add( voxel )
+          scene.add( voxel.wireMesh )
+        }
+      }
+    }
+
+
+    updateHash()
+
+  }
+
+  function updateHash() {
+
+    var data = [], voxels = [], code
+    var current = { x: 0, y: 0, z: 0, c: 0 }
+    var last = { x: 0, y: 0, z: 0, c: 0 }
+    for ( var i in scene.children ) {
+
+      var object = scene.children[ i ]
+
+      if ( object.isVoxel && object !== plane && object !== brush ) {
+
+        current.x = ( object.position.x - 25 ) / 50
+        current.y = ( object.position.y - 25 ) / 50
+        current.z = ( object.position.z - 25 ) / 50
+
+        var colorString = ['r', 'g', 'b'].map(function(col) { return object.material.color[col] }).join('')
+        // this string matching of floating point values to find an index seems a little sketchy
+        for (var i = 0; i < colors.length; i++) if (colors[i].join('') === colorString) current.c = i
+        voxels.push({x: current.x, y: current.y + 1, z: current.z , c: current.c + 1})
+
+        code = 0
+
+        if ( current.x != last.x ) code += 1000
+        if ( current.y != last.y ) code += 100
+        if ( current.z != last.z ) code += 10
+        if ( current.c != last.c ) code += 1
+
+        code += 10000
+
+        data.push( parseInt( code, 2 ) )
+
+        if ( current.x != last.x ) {
+
+          data.push( current.x - last.x + 32 )
+          last.x = current.x
+
+        }
+
+        if ( current.y != last.y ) {
+
+          data.push( current.y - last.y + 32 )
+          last.y = current.y
+
+        }
+
+        if ( current.z != last.z ) {
+
+          data.push( current.z - last.z + 32 )
+          last.z = current.z
+
+        }
+
+        if ( current.c != last.c ) {
+
+          data.push( current.c - last.c + 32 )
+          last.c = current.c
+
+        }
+
+      }
+
+    }
+    data = encode( data )
+
+    var cData = '';
+    for( var c in colors ) {
+      cData+=rgb2hex(colors[c]);
+    }
+
+    var outHash = "#"+(data.length?("A/" + data):'')+(data.length&&cData?':':'')+(cData?("C/"+cData):'')
+    window.location.replace(outHash)
+    return voxels
+  }
+
+  function exportFunction(voxels) {
+    var dimensions = getDimensions(voxels)
+    voxels = voxels.map(function(v) { return [v.x, v.y, v.z, v.c + 1]})
+    var funcString = "var voxels = " + JSON.stringify(voxels) + ";"
+    funcString += 'var dimensions = ' + JSON.stringify(dimensions) + ';'
+    funcString += 'voxels.map(function(voxel) {' +
+      'game.setBlock([position.x + voxel[0], position.y + voxel[1], position.z + voxel[2]], voxel[3])' +
+    '});'
+    return funcString
+  }
+
+  // skips every fourth byte when encoding images,
+  // i.e. leave the alpha channel
+  // alone and only change RGB
+  function pickRGB(idx) {
+    return idx + (idx/3) | 0
+  }
+
+  function getExportCanvas(width, height) {
+    var canvas = document.createElement('canvas')
+    var ctx = canvas.getContext('2d')
+    var source = renderer.domElement
+    var width = canvas.width = width || source.width
+    var height = canvas.height = height || source.height
+
+    renderer.setSize(width, height)
+    camera.aspect = width/height
+    camera.updateProjectionMatrix()
+    renderer.render(scene, camera)
+
+    ctx.fillStyle = 'rgb(255,255,255)'
+    ctx.fillRect(0, 0, width, height)
+    ctx.drawImage(source, 0, 0, width, height)
+
+    updateHash()
+
+    var imageData = ctx.getImageData(0, 0, width, height)
+    var voxelData = window.location.hash
+    var text = 'voxel-painter:' + voxelData
+
+    lsb.encode(imageData.data, text, pickRGB)
+
+    ctx.putImageData(imageData, 0, 0)
+
+    onWindowResize()
+    
+    return canvas
+  }
+  
+  function exportImage(width, height) {
+    var canvas = getExportCanvas(width, height)
+    var image = new Image
+    image.src = canvas.toDataURL()
+    return image
+  }
+
+  function importImage(image) {
+    var canvas = document.createElement('canvas')
+    var ctx = canvas.getContext('2d')
+    var width = canvas.width = image.width
+    var height = canvas.height = image.height
+
+    ctx.fillStyle = 'rgb(255,255,255)'
+    ctx.fillRect(0, 0, width, height)
+    ctx.drawImage(image, 0, 0)
+
+    var imageData = ctx.getImageData(0, 0, width, height)
+    var text = lsb.decode(imageData.data, pickRGB)
+
+    // ignore images that weren't generated by voxel-painter
+    if (text.slice(0, 14) !== 'voxel-painter:') return false
+
+    window.location.hash = text.slice(14)
+    buildFromHash()
+    return true
+  }
+
+  function setupImageDropImport(element) {
+    element.ondragover = function(event) {
+      return event.preventDefault(event) && false
+    }
+    element.ondrop = function(event) {
+      event.preventDefault()
+      event.stopPropagation()
+
+      if (!event.dataTransfer) return false
+
+      var file = event.dataTransfer.files[0]
+      if (!file) return false
+      if (!file.type.match(/image/)) return false
+
+      var reader = new FileReader
+      reader.onload = function(event) {
+        var image = new Image
+        image.src = event.target.result
+        image.onload = function() {
+          if (importImage(image)) return
+          window.alert('Looks like that image doesn\'t have any voxels inside it...')
+        }
+      }
+      reader.readAsDataURL(file)
+      return false
+    }
+  }
+
+  function getDimensions(voxels) {
+    var low = [0, 0, 0], high = [0, 0, 0]
+    voxels.map(function(voxel) {
+      if (voxel.x < low[0]) low[0] = voxel.x
+      if (voxel.x > high[0]) high[0] = voxel.x
+      if (voxel.y < low[1]) low[1] = voxel.y
+      if (voxel.y > high[1]) high[1] = voxel.y
+      if (voxel.z < low[2]) low[2] = voxel.z
+      if (voxel.z > high[2]) high[2] = voxel.z
+    })
+    return [ high[0]-low[0], high[1]-low[1], high[2]-low[2] ]
+  }
+
+  // https://gist.github.com/665235
+
+  function decode( string ) {
+
+    var output = []
+    string.split('').forEach( function ( v ) { output.push( "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".indexOf( v ) ) } )
+    return output
+
+  }
+
+  function encode( array ) {
+
+    var output = ""
+    array.forEach( function ( v ) { output += "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".charAt( v ) } )
+    return output
+
+  }
+
+  function save() {
+
+    window.open( renderer.domElement.toDataURL('image/png'), 'mywindow' )
+
+  }
+
+  function render() {
+    camera.lookAt( target )
+    raycaster = projector.pickingRay( mouse2D.clone(), camera )
+    renderer.render( scene, camera )
+  }
+  
+}
+},{"browser-request":3,"lsb":4,"raf":5,"three":6,"voxel-share":7}],3:[function(require,module,exports){
+(function(){// Browser Request
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+var XHR = XMLHttpRequest
+if (!XHR) throw new Error('missing XMLHttpRequest')
+
+module.exports = request
+request.log = {
+  'trace': noop, 'debug': noop, 'info': noop, 'warn': noop, 'error': noop
+}
+
+var DEFAULT_TIMEOUT = 3 * 60 * 1000 // 3 minutes
+
+//
+// request
+//
+
+function request(options, callback) {
+  // The entry-point to the API: prep the options object and pass the real work to run_xhr.
+  if(typeof callback !== 'function')
+    throw new Error('Bad callback given: ' + callback)
+
+  if(!options)
+    throw new Error('No options given')
+
+  var options_onResponse = options.onResponse; // Save this for later.
+
+  if(typeof options === 'string')
+    options = {'uri':options};
+  else
+    options = JSON.parse(JSON.stringify(options)); // Use a duplicate for mutating.
+
+  options.onResponse = options_onResponse // And put it back.
+
+  if (options.verbose) request.log = getLogger();
+
+  if(options.url) {
+    options.uri = options.url;
+    delete options.url;
+  }
+
+  if(!options.uri && options.uri !== "")
+    throw new Error("options.uri is a required argument");
+
+  if(typeof options.uri != "string")
+    throw new Error("options.uri must be a string");
+
+  var unsupported_options = ['proxy', '_redirectsFollowed', 'maxRedirects', 'followRedirect']
+  for (var i = 0; i < unsupported_options.length; i++)
+    if(options[ unsupported_options[i] ])
+      throw new Error("options." + unsupported_options[i] + " is not supported")
+
+  options.callback = callback
+  options.method = options.method || 'GET';
+  options.headers = options.headers || {};
+  options.body    = options.body || null
+  options.timeout = options.timeout || request.DEFAULT_TIMEOUT
+
+  if(options.headers.host)
+    throw new Error("Options.headers.host is not supported");
+
+  if(options.json) {
+    options.headers.accept = options.headers.accept || 'application/json'
+    if(options.method !== 'GET')
+      options.headers['content-type'] = 'application/json'
+
+    if(typeof options.json !== 'boolean')
+      options.body = JSON.stringify(options.json)
+    else if(typeof options.body !== 'string')
+      options.body = JSON.stringify(options.body)
+  }
+
+  // If onResponse is boolean true, call back immediately when the response is known,
+  // not when the full request is complete.
+  options.onResponse = options.onResponse || noop
+  if(options.onResponse === true) {
+    options.onResponse = callback
+    options.callback = noop
+  }
+
+  // XXX Browsers do not like this.
+  //if(options.body)
+  //  options.headers['content-length'] = options.body.length;
+
+  // HTTP basic authentication
+  if(!options.headers.authorization && options.auth)
+    options.headers.authorization = 'Basic ' + b64_enc(options.auth.username + ':' + options.auth.password);
+
+  return run_xhr(options)
+}
+
+var req_seq = 0
+function run_xhr(options) {
+  var xhr = new XHR
+    , timed_out = false
+    , is_cors = is_crossDomain(options.uri)
+    , supports_cors = ('withCredentials' in xhr)
+
+  req_seq += 1
+  xhr.seq_id = req_seq
+  xhr.id = req_seq + ': ' + options.method + ' ' + options.uri
+  xhr._id = xhr.id // I know I will type "_id" from habit all the time.
+
+  if(is_cors && !supports_cors) {
+    var cors_err = new Error('Browser does not support cross-origin request: ' + options.uri)
+    cors_err.cors = 'unsupported'
+    return options.callback(cors_err, xhr)
+  }
+
+  xhr.timeoutTimer = setTimeout(too_late, options.timeout)
+  function too_late() {
+    timed_out = true
+    var er = new Error('ETIMEDOUT')
+    er.code = 'ETIMEDOUT'
+    er.duration = options.timeout
+
+    request.log.error('Timeout', { 'id':xhr._id, 'milliseconds':options.timeout })
+    return options.callback(er, xhr)
+  }
+
+  // Some states can be skipped over, so remember what is still incomplete.
+  var did = {'response':false, 'loading':false, 'end':false}
+
+  xhr.onreadystatechange = on_state_change
+  xhr.open(options.method, options.uri, true) // asynchronous
+  if(is_cors)
+    xhr.withCredentials = !! options.withCredentials
+  xhr.send(options.body)
+  return xhr
+
+  function on_state_change(event) {
+    if(timed_out)
+      return request.log.debug('Ignoring timed out state change', {'state':xhr.readyState, 'id':xhr.id})
+
+    request.log.debug('State change', {'state':xhr.readyState, 'id':xhr.id, 'timed_out':timed_out})
+
+    if(xhr.readyState === XHR.OPENED) {
+      request.log.debug('Request started', {'id':xhr.id})
+      for (var key in options.headers)
+        xhr.setRequestHeader(key, options.headers[key])
+    }
+
+    else if(xhr.readyState === XHR.HEADERS_RECEIVED)
+      on_response()
+
+    else if(xhr.readyState === XHR.LOADING) {
+      on_response()
+      on_loading()
+    }
+
+    else if(xhr.readyState === XHR.DONE) {
+      on_response()
+      on_loading()
+      on_end()
+    }
+  }
+
+  function on_response() {
+    if(did.response)
+      return
+
+    did.response = true
+    request.log.debug('Got response', {'id':xhr.id, 'status':xhr.status})
+    clearTimeout(xhr.timeoutTimer)
+    xhr.statusCode = xhr.status // Node request compatibility
+
+    // Detect failed CORS requests.
+    if(is_cors && xhr.statusCode == 0) {
+      var cors_err = new Error('CORS request rejected: ' + options.uri)
+      cors_err.cors = 'rejected'
+
+      // Do not process this request further.
+      did.loading = true
+      did.end = true
+
+      return options.callback(cors_err, xhr)
+    }
+
+    options.onResponse(null, xhr)
+  }
+
+  function on_loading() {
+    if(did.loading)
+      return
+
+    did.loading = true
+    request.log.debug('Response body loading', {'id':xhr.id})
+    // TODO: Maybe simulate "data" events by watching xhr.responseText
+  }
+
+  function on_end() {
+    if(did.end)
+      return
+
+    did.end = true
+    request.log.debug('Request done', {'id':xhr.id})
+
+    xhr.body = xhr.responseText
+    if(options.json) {
+      try        { xhr.body = JSON.parse(xhr.responseText) }
+      catch (er) { return options.callback(er, xhr)        }
+    }
+
+    options.callback(null, xhr, xhr.body)
+  }
+
+} // request
+
+request.withCredentials = false;
+request.DEFAULT_TIMEOUT = DEFAULT_TIMEOUT;
+
+//
+// HTTP method shortcuts
+//
+
+var shortcuts = [ 'get', 'put', 'post', 'head' ];
+shortcuts.forEach(function(shortcut) {
+  var method = shortcut.toUpperCase();
+  var func   = shortcut.toLowerCase();
+
+  request[func] = function(opts) {
+    if(typeof opts === 'string')
+      opts = {'method':method, 'uri':opts};
+    else {
+      opts = JSON.parse(JSON.stringify(opts));
+      opts.method = method;
+    }
+
+    var args = [opts].concat(Array.prototype.slice.apply(arguments, [1]));
+    return request.apply(this, args);
+  }
+})
+
+//
+// CouchDB shortcut
+//
+
+request.couch = function(options, callback) {
+  if(typeof options === 'string')
+    options = {'uri':options}
+
+  // Just use the request API to do JSON.
+  options.json = true
+  if(options.body)
+    options.json = options.body
+  delete options.body
+
+  callback = callback || noop
+
+  var xhr = request(options, couch_handler)
+  return xhr
+
+  function couch_handler(er, resp, body) {
+    if(er)
+      return callback(er, resp, body)
+
+    if((resp.statusCode < 200 || resp.statusCode > 299) && body.error) {
+      // The body is a Couch JSON object indicating the error.
+      er = new Error('CouchDB error: ' + (body.error.reason || body.error.error))
+      for (var key in body)
+        er[key] = body[key]
+      return callback(er, resp, body);
+    }
+
+    return callback(er, resp, body);
+  }
+}
+
+//
+// Utility
+//
+
+function noop() {}
+
+function getLogger() {
+  var logger = {}
+    , levels = ['trace', 'debug', 'info', 'warn', 'error']
+    , level, i
+
+  for(i = 0; i < levels.length; i++) {
+    level = levels[i]
+
+    logger[level] = noop
+    if(typeof console !== 'undefined' && console && console[level])
+      logger[level] = formatted(console, level)
+  }
+
+  return logger
+}
+
+function formatted(obj, method) {
+  return formatted_logger
+
+  function formatted_logger(str, context) {
+    if(typeof context === 'object')
+      str += ' ' + JSON.stringify(context)
+
+    return obj[method].call(obj, str)
+  }
+}
+
+// Return whether a URL is a cross-domain request.
+function is_crossDomain(url) {
+  var rurl = /^([\w\+\.\-]+:)(?:\/\/([^\/?#:]*)(?::(\d+))?)?/
+
+  // jQuery #8138, IE may throw an exception when accessing
+  // a field from window.location if document.domain has been set
+  var ajaxLocation
+  try { ajaxLocation = location.href }
+  catch (e) {
+    // Use the href attribute of an A element since IE will modify it given document.location
+    ajaxLocation = document.createElement( "a" );
+    ajaxLocation.href = "";
+    ajaxLocation = ajaxLocation.href;
+  }
+
+  var ajaxLocParts = rurl.exec(ajaxLocation.toLowerCase()) || []
+    , parts = rurl.exec(url.toLowerCase() )
+
+  var result = !!(
+    parts &&
+    (  parts[1] != ajaxLocParts[1]
+    || parts[2] != ajaxLocParts[2]
+    || (parts[3] || (parts[1] === "http:" ? 80 : 443)) != (ajaxLocParts[3] || (ajaxLocParts[1] === "http:" ? 80 : 443))
+    )
+  )
+
+  //console.debug('is_crossDomain('+url+') -> ' + result)
+  return result
+}
+
+// MIT License from http://phpjs.org/functions/base64_encode:358
+function b64_enc (data) {
+    // Encodes string using MIME base64 algorithm
+    var b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+    var o1, o2, o3, h1, h2, h3, h4, bits, i = 0, ac = 0, enc="", tmp_arr = [];
+
+    if (!data) {
+        return data;
+    }
+
+    // assume utf8 data
+    // data = this.utf8_encode(data+'');
+
+    do { // pack three octets into four hexets
+        o1 = data.charCodeAt(i++);
+        o2 = data.charCodeAt(i++);
+        o3 = data.charCodeAt(i++);
+
+        bits = o1<<16 | o2<<8 | o3;
+
+        h1 = bits>>18 & 0x3f;
+        h2 = bits>>12 & 0x3f;
+        h3 = bits>>6 & 0x3f;
+        h4 = bits & 0x3f;
+
+        // use hexets to index into b64, and append result to encoded string
+        tmp_arr[ac++] = b64.charAt(h1) + b64.charAt(h2) + b64.charAt(h3) + b64.charAt(h4);
+    } while (i < data.length);
+
+    enc = tmp_arr.join('');
+
+    switch (data.length % 3) {
+        case 1:
+            enc = enc.slice(0, -2) + '==';
+        break;
+        case 2:
+            enc = enc.slice(0, -1) + '=';
+        break;
+    }
+
+    return enc;
+}
+
+})()
+},{}],4:[function(require,module,exports){
 var spaceCode = ' '.charCodeAt(0)
 
 function stringToBits(str) {
@@ -114,7 +1450,7 @@ module.exports = {
 , stringToBits: stringToBits
 }
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 (function(){module.exports = raf
 
 var EE = require('events').EventEmitter
@@ -162,7 +1498,7 @@ raf.polyfill = _raf
 raf.now = function() { return Date.now() }
 
 })()
-},{"events":5}],6:[function(require,module,exports){
+},{"events":8}],6:[function(require,module,exports){
 (function(){
 var window = window || {};
 var self = self || {};
@@ -35969,995 +37305,90 @@ if (typeof exports !== 'undefined') {
 }
 
 })()
-},{}],2:[function(require,module,exports){
-var THREE = require('three')
-var raf = require('raf')
-var lsb = require('lsb')
-var voxelShare = require('voxel-share')
-var request = require('browser-request')
-
-module.exports = function() {
-  var container
-  var camera, renderer, brush
-  var projector, plane, scene, grid, shareDialog
-  var mouse2D, mouse3D, raycaster, objectHovered
-  var isShiftDown = false, isCtrlDown = false, isMouseDown = false, isAltDown = false
-  var onMouseDownPosition = new THREE.Vector2(), onMouseDownPhi = 60, onMouseDownTheta = 45
-  var radius = 1600, theta = 90, phi = 60
-  var target = new THREE.Vector3( 0, 200, 0 )
-  var color = 0
-  var CubeMaterial = THREE.MeshBasicMaterial
-  var cube = new THREE.CubeGeometry( 50, 50, 50 )
-  var wireframe = true, fill = true
-  
-  var colors = ['2ECC71', '3498DB', '34495E', 'E67E22', 'ECF0F1'].map(function(c) { return hex2rgb(c) })
-  for( var c = 0; c < 5; c++ ) {
-    addColorToPalette(c)
-  }
-
-  showWelcome()
-  init()
-  raf(window).on('data', render)
-  
-  function showWelcome() {
-    var seenWelcome = localStorage.getItem('seenWelcome')
-    if (seenWelcome) return
-    $('#welcome').modal()
-    localStorage.setItem('seenWelcome', true)
-  }
-
-  exports.viewInstructions = function() {
-    $('#welcome').modal()
-  }
-  
-  exports.about = function() {
-    $('#about').modal()
-  }
-  
-  exports.share = function() {
-    var fakeGame = {
-      renderer: {
-        render: function() {}
-      },
-      scene: {},
-      camera: {},
-      element: getExportCanvas(800, 600)
-    }
-    shareDialog = voxelShare({
-      game: fakeGame,
-      // api v3 key from imgur.com
-      key: 'cda7e5d26c82bea',
-      message: 'Check out my voxel critter! Made with ' + window.location.href,
-      hashtags: 'voxelcritter',
-      afterUpload: function(link) {
-        request({
-          method: "POST",
-          url: "http://maxcors.jit.su/http://max.ic.ht/critters",
-          json: true,
-          body: {
-            link: link,
-            author: $('#share .author').val(),
-            name: $('#share .name').val()
-          }
-        }, function(err, resp, body) {
-          shareDialog.close()
-          window.open(link)
-        })
-      }
-    })
-    $('#share .modal-footer .btn-primary').remove()
-    $('#share').modal()
-    var modalBody = $('#share .modal-body .share-form')
-    shareDialog.open(modalBody[0])
-    $('#share .voxel-share button').addClass('btn btn-primary').prependTo($('#share .modal-footer'))
-    shareDialog.close = function() {
-      $('#share .modal-footer .btn-cancel').click()
-    }
-  }
-  
-  // bunny
-  exports.loadExample = function() {
-    window.location.replace( '#A/bfhkSfdihfShaefShahfShahhYfYfYfSfSfSfYhYhYhahjSdechjYhYhYhadfQUhchfYhYhSfYdQYhYhaefQYhYhYhYhSjcchQYhYhYhYhSfSfWehSfUhShecheQYhYhYhYhachYhYhafhYhahfShXdfhShcihYaVhfYmfbihhQYhYhYhaddQShahfYhYhYhShYfYfYfafhQUhchfYhYhYhShechdUhUhcheUhUhcheUhUhcheUhUhcheUhUhWehUhUhcfeUhUhcfeUhUhcfeUhUhcfeUhUhehehUhUhcheUhUhcheUhUhcheUhUhWehUhUhcfeUhUhcfeUhUhcfeUhUhcfeUhUhWffUhWheQYhYhYhYhachQYiYhYhShYfYfYfYfShYhYhYhYhadeakiQSfSfSfUfShShShUfSfSfSfUfShShShUfSfSfSfcakQShShWfeQShShWeeQUhWfhUhShUfWjhQUfUfUfWfdQShShShWkhQUfUfUfchjQYhYhYhYhUfYfYfYeYhUfYhYhcifQYfYfYfYeQcffQYhYhYiYiYfcdhckjUfUfZfeYcciefhleiYhYcYhcfhYhcfhYhcifYhcfhYhcfhYhYcYh')
-    buildFromHash()
-  }
-  
-  exports.browseTwitter = function() {
-    $('#browse').modal()
-    var content = $('#browse .demo-browser-content')
-    content.html('')
-    var links = $("iframe:first").contents().find('.tweet .e-entry-title a')
-    links = links.filter(function(i, link) {
-      var url = $(link).attr('data-expanded-url')
-      if (!url) return
-      if (url.match(/imgur/)) return true
-      return false
-    })
-    links = links.map(function(i, link) {
-      var url = $(link).attr('data-expanded-url')
-      content.append('<img src="' + url + '"/>')
-    })
-  }
-  
-  exports.browseRecent = function() {
-    $('#browse').modal()
-    var content = $('#browse .demo-browser-content')
-    content.html('<p>Loading...</p>')
-    request({ 
-        url: 'http://maxcors.jit.su/http://max.ic.ht/critters/_all_docs?include_docs=true', 
-        json: true
-      }, function(err, resp, data) {
-      if (err) {
-        alert('error loading recent creations')
-        $('#browse .modal-footer .btn-cancel').click()
-        return
-      }
-      content.html('')
-      data.rows.map(function(row) {
-        if (!row || !row.doc) return
-        if (row.doc.link && row.doc.link.match(/imgur/)) content.append('<img src="' + row.doc.link + '"/>')
-      })
-    })
-  }
-  
-  exports.getProxyImage = function(imgURL, cb) {
-    var proxyURL = 'http://maxcors.jit.su/' + imgURL // until imgur gets CORS on GETs
-    var img = new Image()
-    img.crossOrigin = ''
-    img.src = proxyURL
-    img.onload = function() {
-      cb(img)
-    }
-  }
-
-  exports.export = function() {
-    var voxels = updateHash()
-    if (voxels.length === 0) return
-    window.open(exportImage(800, 600).src, 'voxel-painter-window')
-  }
-
-  exports.reset = function() {
-    window.location.replace('#/')
-    scene.children
-      .filter(function(el) { return el.isVoxel })
-      .map(function(mesh) { scene.remove(mesh) })
-  }
-
-  exports.setColor = function(idx) {
-    $('i[data-color="' + idx + '"]').click()
-  }
-
-  exports.setWireframe = function(bool) {
-    wireframe = bool
-    scene.children
-      .filter(function(el) { return el.isVoxel })
-      .map(function(mesh) { mesh.children[1].visible = bool })
-  }
-
-  exports.setFill = function(bool) {
-    fill = bool
-    scene.children
-      .filter(function(el) { return el.isVoxel })
-      .map(function(mesh) { mesh.children[0].material.visible = bool })
-  }
-
-  exports.showGrid = function(bool) {
-    grid.material.visible = bool
-  }
-
-  exports.setShadows = function(bool) {
-    if (bool) CubeMaterial = THREE.MeshLambertMaterial
-    else CubeMaterial = THREE.MeshBasicMaterial
-    scene.children
-      .filter(function(el) { return el !== brush && el.isVoxel })
-      .map(function(cube) { scene.remove(cube) })
-    buildFromHash()
-  }
-
-  function addVoxel() {
-    if (brush.position.y === 2000) return
-    var materials = [
-      new CubeMaterial( { vertexColors: THREE.VertexColors } ),
-      new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } )
-    ]
-    materials[0].color.setRGB( colors[color][0], colors[color][1], colors[color][2] )
-    var voxel = THREE.SceneUtils.createMultiMaterialObject( cube, materials )
-    voxel.isVoxel = true
-    voxel.overdraw = true
-    voxel.position.copy(brush.position)
-    voxel.matrixAutoUpdate = false
-    voxel.updateMatrix()
-    scene.add( voxel )
-  }
-
-  function v2h(value) {
-    value = parseInt(value).toString(16)
-    return value.length < 2 ? '0' + value : value
-  }
-  function rgb2hex(rgb) {
-    return v2h( rgb[ 0 ] * 255 ) + v2h( rgb[ 1 ] * 255 ) + v2h( rgb[ 2 ] * 255 );
-  }
-
-  function hex2rgb(hex) {
-    if(hex[0]=='#') hex = hex.substr(1)
-    return [parseInt(hex.substr(0,2), 16)/255, parseInt(hex.substr(2,2), 16)/255, parseInt(hex.substr(4,2), 16)/255]
-  }
-
-  function scale( x, fromLow, fromHigh, toLow, toHigh ) {
-    return ( x - fromLow ) * ( toHigh - toLow ) / ( fromHigh - fromLow ) + toLow
-  }
-
-  function addColorToPalette(idx) {
-    // add a button to the group
-    var colorBox = $('i[data-color="' + idx + '"]')
-    if(!colorBox.length) {
-      var base = $('.colorAddButton')
-      var clone = base.clone()
-      clone.removeClass('colorAddButton')
-      clone.addClass('colorPickButton')
-      colorBox = clone.find('.colorAdd')
-      colorBox.removeClass('colorAdd')
-      colorBox.addClass('color')
-      colorBox.attr('data-color',idx)
-      colorBox.text('')
-      base.before(clone)
-      clone.click(pickColor)
-      clone.on("contextmenu", changeColor)
-    }
-
-    colorBox.parent().attr('data-color','#'+rgb2hex(colors[idx]))
-    colorBox.css('background',"#"+rgb2hex(colors[idx]))
-
-    if( color == idx && brush )
-      brush.children[0].material.color.setRGB(colors[idx][0], colors[idx][1], colors[idx][2])
-  }
-
-  function zoom(delta) {
-    var origin = {x: 0, y: 0, z: 0}
-    var distance = camera.position.distanceTo(origin)
-    var tooFar = distance  > 2000
-    var tooClose = distance < 300
-    if (delta > 0 && tooFar) return
-    if (delta < 0 && tooClose) return
-    radius = distance // for mouse drag calculations to be correct
-    camera.translateZ( delta )
-  }
-
-  function addColor(e) {
-    //add new color
-    colors.push([0.0,0.0,0.0])
-    idx = colors.length-1
-
-    color = idx;
-
-    addColorToPalette(idx)
-
-    updateHash()
-
-    updateColor(idx)
-  }
-
-  function updateColor(idx) {
-    color = idx
-    var picker = $('i[data-color="' + idx + '"]').parent().colorpicker('show')
-
-    picker.on('changeColor', function(e) {
-      colors[idx]=hex2rgb(e.color.toHex())
-      addColorToPalette(idx)
-
-      // todo:  better way to update color of existing blocks
-      scene.children
-        .filter(function(el) { return el.isVoxel })
-        .map(function(mesh) { scene.remove(mesh) })
-      buildFromHash('A')
-    })
-    picker.on('hide', function(e) {
-      // todo:  add a better remove for the colorpicker.
-      picker.unbind('click.colorpicker')
-    })
-  }
-
-  function changeColor(e) {
-    var target = $(e.currentTarget)
-    var idx = +target.find('.color').attr('data-color')
-    updateColor(idx)
-    return false // eat the event
-  }
-
-  function pickColor(e) {
-    var target = $(e.currentTarget)
-    var idx = +target.find('.color').attr('data-color')
-
-    color = idx
-    brush.children[0].material.color.setRGB(colors[idx][0], colors[idx][1], colors[idx][2])
-  }
-  
-  function bindEventsAndPlugins() {
-    
-    $('#browse img').live('click', function(ev) {
-      var url = $(ev.target).attr('src')
-      $('#browse button').click()
-      exports.getProxyImage(url, function(img) {
-        importImage(img)
-      })
-    })
-    
-    $('#shareButton').click(function(e) {
-      e.preventDefault()
-      exports.share()
-      return false
-    })
-
-    $('.colorPickButton').click(pickColor)
-    $('.colorPickButton').on("contextmenu", changeColor)
-    $('.colorAddButton').click(addColor)
-
-    $('.toggle input').click(function(e) {
-      // setTimeout ensures this fires after the input value changes
-      setTimeout(function() {
-        var el = $(e.target).parent()
-        var state = !el.hasClass('toggle-off')
-        exports[el.attr('data-action')](state)
-      }, 0)
-    })
-
-    var actionsMenu = $(".actionsMenu")
-    actionsMenu.dropkick({
-      change: function(value, label) {
-        if (value === 'noop') return
-        if (value in exports) exports[value]()
-        setTimeout(function() {
-          actionsMenu.dropkick('reset')
-        }, 0)
-      }
-    })
-    
-    // Todo list
-    $(".todo li").click(function() {
-        $(this).toggleClass("todo-done");
-    });
-
-    // Init tooltips
-    $("[data-toggle=tooltip]").tooltip("show");
-
-    // Init tags input
-    $("#tagsinput").tagsInput();
-
-    // Init jQuery UI slider
-    $("#slider").slider({
-        min: 1,
-        max: 4,
-        value: 1,
-        orientation: "horizontal",
-        range: "min",
-    });
-
-    // JS input/textarea placeholder
-    $("input, textarea").placeholder();
-
-    // Make pagination demo work
-    $(".pagination a").click(function() {
-        if (!$(this).parent().hasClass("previous") && !$(this).parent().hasClass("next")) {
-            $(this).parent().siblings("li").removeClass("active");
-            $(this).parent().addClass("active");
-        }
-    });
-
-    $(".btn-group a").click(function() {
-        $(this).siblings().removeClass("active");
-        $(this).addClass("active");
-    });
-
-    // Disable link click not scroll top
-    $("a[href='#']").click(function() {
-        return false
-    });
-
-  }
-
-  function init() {
-    
-    bindEventsAndPlugins()
-    setupImageDropImport(document.body)
-
-    container = document.createElement( 'div' )
-    document.body.appendChild( container )
-
-    camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 10000 )
-    camera.position.x = radius * Math.sin( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
-    camera.position.y = radius * Math.sin( phi * Math.PI / 360 )
-    camera.position.z = radius * Math.cos( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
-
-    scene = new THREE.Scene()
-
-    // Grid
-
-    var size = 500, step = 50
-
-    var geometry = new THREE.Geometry()
-
-    for ( var i = - size; i <= size; i += step ) {
-
-      geometry.vertices.push( new THREE.Vector3( - size, 0, i ) )
-      geometry.vertices.push( new THREE.Vector3(   size, 0, i ) )
-
-      geometry.vertices.push( new THREE.Vector3( i, 0, - size ) )
-      geometry.vertices.push( new THREE.Vector3( i, 0,   size ) )
-
-    }
-
-    var material = new THREE.LineBasicMaterial( { color: 0x000000, opacity: 0.2 } )
-
-    var line = new THREE.Line( geometry, material )
-    line.type = THREE.LinePieces
-    grid = line
-    scene.add( line )
-
-    // Plane
-
-    projector = new THREE.Projector()
-
-    plane = new THREE.Mesh( new THREE.PlaneGeometry( 1000, 1000 ), new THREE.MeshBasicMaterial() )
-    plane.rotation.x = - Math.PI / 2
-    plane.visible = false
-    scene.add( plane )
-
-    mouse2D = new THREE.Vector3( 0, 10000, 0.5 )
-
-    // Brush
-    var brushMaterials = [
-      new CubeMaterial( { vertexColors: THREE.VertexColors, opacity: 0.5 } ),
-      new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } )
-    ]
-    brushMaterials[0].color.setRGB(colors[0][0], colors[0][1], colors[0][2])
-    brush = THREE.SceneUtils.createMultiMaterialObject( cube, brushMaterials )
-    brush.isBrush = true
-    brush.position.y = 2000
-    brush.overdraw = true
-    scene.add( brush )
-
-    // Lights
-
-    var ambientLight = new THREE.AmbientLight( 0x606060 )
-    scene.add( ambientLight )
-
-    var directionalLight = new THREE.DirectionalLight( 0xffffff )
-    directionalLight.position.x = Math.random() - 0.5
-    directionalLight.position.y = Math.random() - 0.5
-    directionalLight.position.z = Math.random() - 0.5
-    directionalLight.position.normalize()
-    scene.add( directionalLight )
-
-    var directionalLight = new THREE.DirectionalLight( 0x808080 )
-    directionalLight.position.x = Math.random() - 0.5
-    directionalLight.position.y = Math.random() - 0.5
-    directionalLight.position.z = Math.random() - 0.5
-    directionalLight.position.normalize()
-    scene.add( directionalLight )
-
-    renderer = new THREE.CanvasRenderer()
-    renderer.setSize( window.innerWidth, window.innerHeight )
-
-    container.appendChild(renderer.domElement)
-
-    renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false )
-    renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false )
-    renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false )
-    document.addEventListener( 'keydown', onDocumentKeyDown, false )
-    document.addEventListener( 'keyup', onDocumentKeyUp, false )
-    window.addEventListener('DOMMouseScroll', mousewheel, false);
-    window.addEventListener('mousewheel', mousewheel, false);
-
-    function mousewheel( event ) {
-      zoom(event.wheelDeltaY)
-    }
-
-    window.addEventListener( 'resize', onWindowResize, false )
-
-    if ( window.location.hash ) buildFromHash()
-
-  }
-
-  function onWindowResize() {
-
-    camera.aspect = window.innerWidth / window.innerHeight
-    camera.updateProjectionMatrix()
-
-    renderer.setSize( window.innerWidth, window.innerHeight )
-    interact()
-  }
-
-  function getIntersecting() {
-    var intersectable = scene.children.map(function(c) { if (c.isVoxel) return c.children[0]; return c; })
-    var intersections = raycaster.intersectObjects( intersectable )
-    if (intersections.length > 0) {
-      var intersect = intersections[ 0 ].object.isBrush ? intersections[ 1 ] : intersections[ 0 ]
-      return intersect
-    }
-  }
-
-  function interact() {
-    if (typeof raycaster === 'undefined') return
-
-    if ( objectHovered ) {
-      objectHovered.material.opacity = 1
-      objectHovered = null
-    }
-
-    var intersect = getIntersecting()
-
-    if ( intersect ) {
-      var normal = intersect.face.normal.clone()
-      normal.applyMatrix4( intersect.object.matrixRotationWorld )
-      var position = new THREE.Vector3().addVectors( intersect.point, normal )
-      var newCube = [Math.floor( position.x / 50 ), Math.floor( position.y / 50 ), Math.floor( position.z / 50 )]
-
-      function updateBrush() {
-        brush.position.x = Math.floor( position.x / 50 ) * 50 + 25
-        brush.position.y = Math.floor( position.y / 50 ) * 50 + 25
-        brush.position.z = Math.floor( position.z / 50 ) * 50 + 25
-      }
-
-      if (isAltDown) {
-        if (!brush.currentCube) brush.currentCube = newCube
-        if (brush.currentCube.join('') !== newCube.join('')) {
-          if ( isShiftDown ) {
-            if ( intersect.object !== plane ) {
-              scene.remove( intersect.object.parent )
-            }
-          } else {
-            addVoxel()
-          }
-        }
-        updateBrush()
-        updateHash()
-        return brush.currentCube = newCube
-      } else if ( isShiftDown ) {
-        if ( intersect.object !== plane ) {
-          objectHovered = intersect.object
-          objectHovered.material.opacity = 0.5
-          return
-        }
-      } else {
-        updateBrush()
-        return
-      }
-    }
-    brush.position.y = 2000
-  }
-
-  function onDocumentMouseMove( event ) {
-
-    event.preventDefault()
-
-    if ( isMouseDown ) {
-
-      theta = - ( ( event.clientX - onMouseDownPosition.x ) * 0.5 ) + onMouseDownTheta
-      phi = ( ( event.clientY - onMouseDownPosition.y ) * 0.5 ) + onMouseDownPhi
-
-      phi = Math.min( 180, Math.max( 0, phi ) )
-
-      camera.position.x = radius * Math.sin( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
-      camera.position.y = radius * Math.sin( phi * Math.PI / 360 )
-      camera.position.z = radius * Math.cos( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
-      camera.updateMatrix()
-
-    }
-
-    mouse2D.x = ( event.clientX / window.innerWidth ) * 2 - 1
-    mouse2D.y = - ( event.clientY / window.innerHeight ) * 2 + 1
-
-    interact()
-  }
-
-  function onDocumentMouseDown( event ) {
-    event.preventDefault()
-    isMouseDown = true
-    onMouseDownTheta = theta
-    onMouseDownPhi = phi
-    onMouseDownPosition.x = event.clientX
-    onMouseDownPosition.y = event.clientY
-  }
-
-  function onDocumentMouseUp( event ) {
-    event.preventDefault()
-    isMouseDown = false
-    onMouseDownPosition.x = event.clientX - onMouseDownPosition.x
-    onMouseDownPosition.y = event.clientY - onMouseDownPosition.y
-
-    if ( onMouseDownPosition.length() > 5 ) return
-
-    var intersect = getIntersecting()
-
-    if ( intersect ) {
-
-      if ( isShiftDown ) {
-
-        if ( intersect.object != plane ) {
-
-          scene.remove( intersect.object.parent )
-
-        }
-      } else {
-        addVoxel()
-      }
-
-    }
-
-
-    updateHash()
-    render()
-    interact()
-  }
-
-  function onDocumentKeyDown( event ) {
-    switch( event.keyCode ) {
-      case 189: zoom(100); break
-      case 187: zoom(-100); break
-      case 49: exports.setColor(0); break
-      case 50: exports.setColor(1); break
-      case 51: exports.setColor(2); break
-      case 52: exports.setColor(3); break
-      case 53: exports.setColor(4); break
-      case 54: exports.setColor(5); break
-      case 55: exports.setColor(6); break
-      case 56: exports.setColor(7); break
-      case 57: exports.setColor(8); break
-      case 48: exports.setColor(9); break
-      case 16: isShiftDown = true; break
-      case 17: isCtrlDown = true; break
-      case 18: isAltDown = true; break
-    }
-
-  }
-
-  function onDocumentKeyUp( event ) {
-
-    switch( event.keyCode ) {
-
-      case 16: isShiftDown = false; break
-      case 17: isCtrlDown = false; break
-      case 18: isAltDown = false; break
-
-    }
-  }
-
-
-  function buildFromHash(hashMask) {
-
-    var hash = window.location.hash.substr( 1 ),
-    hashChunks = hash.split(':'),
-    chunks = {}
-
-    for( var j = 0, n = hashChunks.length; j < n; j++ ) {
-      chunks[hashChunks[j][0]] = hashChunks[j].substr(2)
-    }
-
-    if ( (!hashMask || hashMask == 'C') && chunks['C'] )
-    {
-      // decode colors
-      var hexColors = chunks['C']
-      for(var c = 0, nC = hexColors.length/6; c < nC; c++) {
-        var hex = hexColors.substr(c*6,6)
-        colors[c] = hex2rgb(hex)
-
-        addColorToPalette(c)
-      }
-    }
-
-    if ( (!hashMask || hashMask == 'A') && chunks['A'] ) {
-      // decode geo
-      var current = { x: 0, y: 0, z: 0, c: 0 }
-      var data = decode( chunks['A'] )
-      var i = 0, l = data.length
-
-      while ( i < l ) {
-
-        var code = data[ i ++ ].toString( 2 )
-        if ( code.charAt( 1 ) == "1" ) current.x += data[ i ++ ] - 32
-        if ( code.charAt( 2 ) == "1" ) current.y += data[ i ++ ] - 32
-        if ( code.charAt( 3 ) == "1" ) current.z += data[ i ++ ] - 32
-        if ( code.charAt( 4 ) == "1" ) current.c += data[ i ++ ] - 32
-        if ( code.charAt( 0 ) == "1" ) {
-          var materials = [
-            new CubeMaterial( { vertexColors: THREE.VertexColors } ),
-            new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } )
-          ]
-          var col = colors[current.c] || colors[0]
-          materials[0].color.setRGB( col[0], col[1], col[2] )
-          var voxel = THREE.SceneUtils.createMultiMaterialObject( cube, materials )
-          voxel.isVoxel = true
-          voxel.position.x = current.x * 50 + 25
-          voxel.position.y = current.y * 50 + 25
-          voxel.position.z = current.z * 50 + 25
-          voxel.overdraw = true
-          scene.add( voxel )
-        }
-      }
-    }
-
-
-    updateHash()
-
-  }
-
-  function updateHash() {
-
-    var data = [], voxels = [], code
-    var current = { x: 0, y: 0, z: 0, c: 0 }
-    var last = { x: 0, y: 0, z: 0, c: 0 }
-    for ( var i in scene.children ) {
-
-      var object = scene.children[ i ]
-
-      if ( object.isVoxel && object !== plane && object !== brush ) {
-
-        current.x = ( object.position.x - 25 ) / 50
-        current.y = ( object.position.y - 25 ) / 50
-        current.z = ( object.position.z - 25 ) / 50
-
-        var colorString = ['r', 'g', 'b'].map(function(col) { return object.children[0].material.color[col] }).join('')
-        // this string matching of floating point values to find an index seems a little sketchy
-        for (var i = 0; i < colors.length; i++) if (colors[i].join('') === colorString) current.c = i
-        voxels.push({x: current.x, y: current.y + 1, z: current.z , c: current.c + 1})
-
-        code = 0
-
-        if ( current.x != last.x ) code += 1000
-        if ( current.y != last.y ) code += 100
-        if ( current.z != last.z ) code += 10
-        if ( current.c != last.c ) code += 1
-
-        code += 10000
-
-        data.push( parseInt( code, 2 ) )
-
-        if ( current.x != last.x ) {
-
-          data.push( current.x - last.x + 32 )
-          last.x = current.x
-
-        }
-
-        if ( current.y != last.y ) {
-
-          data.push( current.y - last.y + 32 )
-          last.y = current.y
-
-        }
-
-        if ( current.z != last.z ) {
-
-          data.push( current.z - last.z + 32 )
-          last.z = current.z
-
-        }
-
-        if ( current.c != last.c ) {
-
-          data.push( current.c - last.c + 32 )
-          last.c = current.c
-
-        }
-
-      }
-
-    }
-    data = encode( data )
-
-    var cData = '';
-    for( var c in colors ) {
-      cData+=rgb2hex(colors[c]);
-    }
-
-    var outHash = "#"+(data.length?("A/" + data):'')+(data.length&&cData?':':'')+(cData?("C/"+cData):'')
-    window.location.replace(outHash)
-    return voxels
-  }
-
-  function exportFunction(voxels) {
-    var dimensions = getDimensions(voxels)
-    voxels = voxels.map(function(v) { return [v.x, v.y, v.z, v.c + 1]})
-    var funcString = "var voxels = " + JSON.stringify(voxels) + ";"
-    funcString += 'var dimensions = ' + JSON.stringify(dimensions) + ';'
-    funcString += 'voxels.map(function(voxel) {' +
-      'game.setBlock([position.x + voxel[0], position.y + voxel[1], position.z + voxel[2]], voxel[3])' +
-    '});'
-    return funcString
-  }
-
-  // skips every fourth byte when encoding images,
-  // i.e. leave the alpha channel
-  // alone and only change RGB
-  function pickRGB(idx) {
-    return idx + (idx/3) | 0
-  }
-
-  function getExportCanvas(width, height) {
-    var canvas = document.createElement('canvas')
-    var ctx = canvas.getContext('2d')
-    var source = renderer.domElement
-    var width = canvas.width = width || source.width
-    var height = canvas.height = height || source.height
-
-    renderer.setSize(width, height)
-    camera.aspect = width/height
-    camera.updateProjectionMatrix()
-    renderer.render(scene, camera)
-
-    ctx.fillStyle = 'rgb(255,255,255)'
-    ctx.fillRect(0, 0, width, height)
-    ctx.drawImage(source, 0, 0, width, height)
-
-    updateHash()
-
-    var imageData = ctx.getImageData(0, 0, width, height)
-    var voxelData = window.location.hash
-    var text = 'voxel-painter:' + voxelData
-
-    lsb.encode(imageData.data, text, pickRGB)
-
-    ctx.putImageData(imageData, 0, 0)
-
-    onWindowResize()
-    
-    return canvas
-  }
-  
-  function exportImage(width, height) {
-    var canvas = getExportCanvas(width, height)
-    var image = new Image
-    image.src = canvas.toDataURL()
-    return image
-  }
-
-  function importImage(image) {
-    var canvas = document.createElement('canvas')
-    var ctx = canvas.getContext('2d')
-    var width = canvas.width = image.width
-    var height = canvas.height = image.height
-
-    ctx.fillStyle = 'rgb(255,255,255)'
-    ctx.fillRect(0, 0, width, height)
-    ctx.drawImage(image, 0, 0)
-
-    var imageData = ctx.getImageData(0, 0, width, height)
-    var text = lsb.decode(imageData.data, pickRGB)
-
-    // ignore images that weren't generated by voxel-painter
-    if (text.slice(0, 14) !== 'voxel-painter:') return false
-
-    window.location.hash = text.slice(14)
-    buildFromHash()
-    return true
-  }
-
-  function setupImageDropImport(element) {
-    element.ondragover = function(event) {
-      return event.preventDefault(event) && false
-    }
-    element.ondrop = function(event) {
-      event.preventDefault()
-      event.stopPropagation()
-
-      if (!event.dataTransfer) return false
-
-      var file = event.dataTransfer.files[0]
-      if (!file) return false
-      if (!file.type.match(/image/)) return false
-
-      var reader = new FileReader
-      reader.onload = function(event) {
-        var image = new Image
-        image.src = event.target.result
-        image.onload = function() {
-          if (importImage(image)) return
-          window.alert('Looks like that image doesn\'t have any voxels inside it...')
-        }
-      }
-      reader.readAsDataURL(file)
-      return false
-    }
-  }
-
-  function getDimensions(voxels) {
-    var low = [0, 0, 0], high = [0, 0, 0]
-    voxels.map(function(voxel) {
-      if (voxel.x < low[0]) low[0] = voxel.x
-      if (voxel.x > high[0]) high[0] = voxel.x
-      if (voxel.y < low[1]) low[1] = voxel.y
-      if (voxel.y > high[1]) high[1] = voxel.y
-      if (voxel.z < low[2]) low[2] = voxel.z
-      if (voxel.z > high[2]) high[2] = voxel.z
-    })
-    return [ high[0]-low[0], high[1]-low[1], high[2]-low[2] ]
-  }
-
-  // https://gist.github.com/665235
-
-  function decode( string ) {
-
-    var output = []
-    string.split('').forEach( function ( v ) { output.push( "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".indexOf( v ) ) } )
-    return output
-
-  }
-
-  function encode( array ) {
-
-    var output = ""
-    array.forEach( function ( v ) { output += "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".charAt( v ) } )
-    return output
-
-  }
-
-  function save() {
-
-    window.open( renderer.domElement.toDataURL('image/png'), 'mywindow' )
-
-  }
-
-  function render() {
-    camera.lookAt( target )
-    raycaster = projector.pickingRay( mouse2D.clone(), camera )
-    renderer.render( scene, camera )
-  }
-  
+},{}],7:[function(require,module,exports){
+function Share(opts) {
+  if (!(this instanceof Share)) return new Share(opts || {});
+  if (opts.THREE) opts = {game:opts};
+  if (!opts.key) throw new Error('Get a key: http://api.imgur.com/');
+  this.key      = opts.key;
+  this.game     = opts.game;
+  this.hashtags = opts.hashtags || '';
+  this.message  = opts.message || 'Greetings from voxel.js! @voxeljs';
+  this.type     = opts.type    || 'image/png';
+  this.quality  = opts.quality || 0.75;
+  this.opened   = false;
+  this.afterUpload = opts.afterUpload || this.tweet;
 }
-},{"three":6,"raf":4,"lsb":3,"browser-request":7,"voxel-share":8}],9:[function(require,module,exports){
-// shim for using process in browser
+module.exports = Share;
 
-var process = module.exports = {};
-
-process.nextTick = (function () {
-    var canSetImmediate = typeof window !== 'undefined'
-    && window.setImmediate;
-    var canPost = typeof window !== 'undefined'
-    && window.postMessage && window.addEventListener
-    ;
-
-    if (canSetImmediate) {
-        return function (f) { return window.setImmediate(f) };
-    }
-
-    if (canPost) {
-        var queue = [];
-        window.addEventListener('message', function (ev) {
-            if (ev.source === window && ev.data === 'process-tick') {
-                ev.stopPropagation();
-                if (queue.length > 0) {
-                    var fn = queue.shift();
-                    fn();
-                }
-            }
-        }, true);
-
-        return function nextTick(fn) {
-            queue.push(fn);
-            window.postMessage('process-tick', '*');
-        };
-    }
-
-    return function nextTick(fn) {
-        setTimeout(fn, 0);
-    };
-})();
-
-process.title = 'browser';
-process.browser = true;
-process.env = {};
-process.argv = [];
-
-process.binding = function (name) {
-    throw new Error('process.binding is not supported');
-}
-
-// TODO(shtylman)
-process.cwd = function () { return '/' };
-process.chdir = function (dir) {
-    throw new Error('process.chdir is not supported');
+Share.prototype.open = function(append) {
+  this.close();
+  this.element = this.createElement();
+  append = append || document.body;
+  append.appendChild(this.element);
+  this.opened = true;
 };
 
-},{}],5:[function(require,module,exports){
+Share.prototype.close = function() {
+  if (this.element != null) {
+    this.element.parentNode.removeChild(this.element);
+  }
+  this.element = null;
+  this.opened = false;
+};
+
+Share.prototype.submit = function() {
+  var self = this;
+  var fd = new FormData();
+  fd.append('image', String(this.image.src).split(',')[1]);
+  if (this.message) fd.append('description', this.message);
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', 'https://api.imgur.com/3/upload');
+  var auth = 'Client-ID ' + this.key
+  xhr.setRequestHeader('Authorization', auth);
+  xhr.onload = function() {
+    // todo: error check
+    var link = JSON.parse(xhr.responseText).data.link;
+    self.afterUpload.call(self, link);
+  };
+  xhr.send(fd);
+};
+
+Share.prototype.tweet = function(imgUrl) {
+  var url = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(this.message) + ' ' + imgUrl + '&hashtags=' + this.hashtags
+  window.open(url, 'twitter', 'width=550,height=450');
+};
+
+Share.prototype.createElement = function() {
+  var self = this;
+  var e = document.createElement('div');
+  e.className = 'voxel-share';
+
+  // create image
+  this.image = new Image();
+  this.game.renderer.render(this.game.scene, this.game.camera);
+  this.image.src = this.game.element.toDataURL(this.type, this.quality);
+  e.appendChild(this.image);
+
+  // create text input
+  var msgBox = document.createElement('textarea');
+  msgBox.value = this.message;
+  e.appendChild(msgBox);
+  setTimeout(function() { msgBox.focus(); }, 500);
+
+  // submit button
+  var button = document.createElement('button');
+  button.innerHTML = 'Upload Image';
+  e.appendChild(button);
+  button.onclick = function() {
+    this.innerHTML = 'Uploading...';
+    self.submit();
+  };
+
+  return e;
+};
+
+},{}],8:[function(require,module,exports){
 (function(process){if (!process.EventEmitter) process.EventEmitter = function () {};
 
 var EventEmitter = exports.EventEmitter = process.EventEmitter;
@@ -37143,1056 +37574,59 @@ EventEmitter.prototype.listeners = function(type) {
 };
 
 })(require("__browserify_process"))
-},{"__browserify_process":9}],8:[function(require,module,exports){
-function Share(opts) {
-  if (!(this instanceof Share)) return new Share(opts || {});
-  if (opts.THREE) opts = {game:opts};
-  if (!opts.key) throw new Error('Get a key: http://api.imgur.com/');
-  this.key      = opts.key;
-  this.game     = opts.game;
-  this.hashtags = opts.hashtags || '';
-  this.message  = opts.message || 'Greetings from voxel.js! @voxeljs';
-  this.type     = opts.type    || 'image/png';
-  this.quality  = opts.quality || 0.75;
-  this.opened   = false;
-  this.afterUpload = opts.afterUpload || function(link) {
-    this.tweet(link);
-  }.bind(this)
-}
-module.exports = Share;
+},{"__browserify_process":9}],9:[function(require,module,exports){
+// shim for using process in browser
 
-Share.prototype.open = function(append) {
-  this.close();
-  this.element = this.createElement();
-  append = append || document.body;
-  append.appendChild(this.element);
-  this.opened = true;
-};
+var process = module.exports = {};
 
-Share.prototype.close = function() {
-  if (this.element != null) {
-    this.element.parentNode.removeChild(this.element);
-  }
-  this.element = null;
-  this.opened = false;
-};
+process.nextTick = (function () {
+    var canSetImmediate = typeof window !== 'undefined'
+    && window.setImmediate;
+    var canPost = typeof window !== 'undefined'
+    && window.postMessage && window.addEventListener
+    ;
 
-Share.prototype.submit = function() {
-  var self = this;
-  var fd = new FormData();
-  fd.append('image', String(this.image.src).split(',')[1]);
-  if (this.message) fd.append('description', this.message);
-  var xhr = new XMLHttpRequest();
-  xhr.open('POST', 'https://api.imgur.com/3/upload');
-  var auth = 'Client-ID ' + this.key
-  xhr.setRequestHeader('Authorization', auth);
-  xhr.onload = function() {
-    // todo: error check
-    var link = JSON.parse(xhr.responseText).data.link
-    self.afterUpload(link)
-  };
-  xhr.send(fd);
-};
-
-Share.prototype.tweet = function(imgUrl) {
-  var url = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(this.message) + ' ' + imgUrl + '&hashtags=' + this.hashtags
-  window.open(url, 'twitter', 'width=550,height=450');
-};
-
-Share.prototype.createElement = function() {
-  var self = this;
-  var e = document.createElement('div');
-  e.className = 'voxel-share';
-
-  // create image
-  this.image = new Image();
-  this.game.renderer.render(this.game.scene, this.game.camera);
-  this.image.src = this.game.element.toDataURL(this.type, this.quality);
-  e.appendChild(this.image);
-
-  // create text input
-  var msgBox = document.createElement('textarea');
-  msgBox.value = this.message;
-  e.appendChild(msgBox);
-  setTimeout(function() { msgBox.focus(); }, 500);
-
-  // submit button
-  var button = document.createElement('button');
-  button.innerHTML = 'Upload Image';
-  e.appendChild(button);
-  button.onclick = function() {
-    this.innerHTML = 'Uploading...';
-    self.submit();
-  };
-
-  return e;
-};
-
-},{}],7:[function(require,module,exports){
-(function(){// Browser Request
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-var xmlhttprequest = require('./xmlhttprequest')
-if(!xmlhttprequest || typeof xmlhttprequest !== 'object')
-  throw new Error('Could not find ./xmlhttprequest')
-
-var XHR = xmlhttprequest.XMLHttpRequest
-if(!XHR)
-  throw new Error('Bad xmlhttprequest.XMLHttpRequest')
-if(! ('_object' in (new XHR)))
-  throw new Error('This is not portable XMLHttpRequest')
-
-module.exports = request
-request.XMLHttpRequest = XHR
-request.log = getLogger()
-
-var DEFAULT_TIMEOUT = 3 * 60 * 1000 // 3 minutes
-
-//
-// request
-//
-
-function request(options, callback) {
-  // The entry-point to the API: prep the options object and pass the real work to run_xhr.
-  if(typeof callback !== 'function')
-    throw new Error('Bad callback given: ' + callback)
-
-  if(!options)
-    throw new Error('No options given')
-
-  var options_onResponse = options.onResponse; // Save this for later.
-
-  if(typeof options === 'string')
-    options = {'uri':options};
-  else
-    options = JSON.parse(JSON.stringify(options)); // Use a duplicate for mutating.
-
-  options.onResponse = options_onResponse // And put it back.
-
-  if(options.url) {
-    options.uri = options.url;
-    delete options.url;
-  }
-
-  if(!options.uri && options.uri !== "")
-    throw new Error("options.uri is a required argument");
-
-  if(typeof options.uri != "string")
-    throw new Error("options.uri must be a string");
-
-  var unsupported_options = ['proxy', '_redirectsFollowed', 'maxRedirects', 'followRedirect']
-  for (var i = 0; i < unsupported_options.length; i++)
-    if(options[ unsupported_options[i] ])
-      throw new Error("options." + unsupported_options[i] + " is not supported")
-
-  options.callback = callback
-  options.method = options.method || 'GET';
-  options.headers = options.headers || {};
-  options.body    = options.body || null
-  options.timeout = options.timeout || request.DEFAULT_TIMEOUT
-
-  if(options.headers.host)
-    throw new Error("Options.headers.host is not supported");
-
-  if(options.json) {
-    options.headers.accept = options.headers.accept || 'application/json'
-    if(options.method !== 'GET')
-      options.headers['content-type'] = 'application/json'
-
-    if(typeof options.json !== 'boolean')
-      options.body = JSON.stringify(options.json)
-    else if(typeof options.body !== 'string')
-      options.body = JSON.stringify(options.body)
-  }
-
-  // If onResponse is boolean true, call back immediately when the response is known,
-  // not when the full request is complete.
-  options.onResponse = options.onResponse || noop
-  if(options.onResponse === true) {
-    options.onResponse = callback
-    options.callback = noop
-  }
-
-  // XXX Browsers do not like this.
-  //if(options.body)
-  //  options.headers['content-length'] = options.body.length;
-
-  // HTTP basic authentication
-  if(!options.headers.authorization && options.auth)
-    options.headers.authorization = 'Basic ' + b64_enc(options.auth.username + ':' + options.auth.password);
-
-  return run_xhr(options)
-}
-
-var req_seq = 0
-function run_xhr(options) {
-  var xhr = new XHR
-    , timed_out = false
-    , is_cors = is_crossDomain(options.uri)
-    , supports_cors = ('withCredentials' in xhr._object)
-
-  req_seq += 1
-  xhr.seq_id = req_seq
-  xhr.id = req_seq + ': ' + options.method + ' ' + options.uri
-  xhr._id = xhr.id // I know I will type "_id" from habit all the time.
-
-  if(is_cors && !supports_cors) {
-    var cors_err = new Error('Browser does not support cross-origin request: ' + options.uri)
-    cors_err.cors = 'unsupported'
-    return options.callback(cors_err, xhr)
-  }
-
-  xhr.timeoutTimer = setTimeout(too_late, options.timeout)
-  function too_late() {
-    timed_out = true
-    var er = new Error('ETIMEDOUT')
-    er.code = 'ETIMEDOUT'
-    er.duration = options.timeout
-
-    request.log.error('Timeout', { 'id':xhr._id, 'milliseconds':options.timeout })
-    return options.callback(er, xhr)
-  }
-
-  // Some states can be skipped over, so remember what is still incomplete.
-  var did = {'response':false, 'loading':false, 'end':false}
-
-  xhr.onreadystatechange = on_state_change
-  xhr.open(options.method, options.uri, true) // asynchronous
-  if(is_cors)
-    xhr._object.withCredentials = !! options.withCredentials
-  xhr.send(options.body)
-  return xhr
-
-  function on_state_change(event) {
-    if(timed_out)
-      return request.log.debug('Ignoring timed out state change', {'state':xhr.readyState, 'id':xhr.id})
-
-    request.log.debug('State change', {'state':xhr.readyState, 'id':xhr.id, 'timed_out':timed_out})
-
-    if(xhr.readyState === XHR.OPENED) {
-      request.log.debug('Request started', {'id':xhr.id})
-      for (var key in options.headers)
-        xhr.setRequestHeader(key, options.headers[key])
+    if (canSetImmediate) {
+        return function (f) { return window.setImmediate(f) };
     }
 
-    else if(xhr.readyState === XHR.HEADERS_RECEIVED)
-      on_response()
+    if (canPost) {
+        var queue = [];
+        window.addEventListener('message', function (ev) {
+            if (ev.source === window && ev.data === 'process-tick') {
+                ev.stopPropagation();
+                if (queue.length > 0) {
+                    var fn = queue.shift();
+                    fn();
+                }
+            }
+        }, true);
 
-    else if(xhr.readyState === XHR.LOADING) {
-      on_response()
-      on_loading()
+        return function nextTick(fn) {
+            queue.push(fn);
+            window.postMessage('process-tick', '*');
+        };
     }
 
-    else if(xhr.readyState === XHR.DONE) {
-      on_response()
-      on_loading()
-      on_end()
-    }
-  }
-
-  function on_response() {
-    if(did.response)
-      return
-
-    did.response = true
-    request.log.debug('Got response', {'id':xhr.id, 'status':xhr.status})
-    clearTimeout(xhr.timeoutTimer)
-    xhr.statusCode = xhr.status // Node request compatibility
-
-    // Detect failed CORS requests.
-    if(is_cors && xhr.statusCode == 0) {
-      var cors_err = new Error('CORS request rejected: ' + options.uri)
-      cors_err.cors = 'rejected'
-
-      // Do not process this request further.
-      did.loading = true
-      did.end = true
-
-      return options.callback(cors_err, xhr)
-    }
-
-    options.onResponse(null, xhr)
-  }
-
-  function on_loading() {
-    if(did.loading)
-      return
-
-    did.loading = true
-    request.log.debug('Response body loading', {'id':xhr.id})
-    // TODO: Maybe simulate "data" events by watching xhr.responseText
-  }
-
-  function on_end() {
-    if(did.end)
-      return
-
-    did.end = true
-    request.log.debug('Request done', {'id':xhr.id})
-
-    xhr.body = xhr.responseText
-    if(options.json) {
-      try        { xhr.body = JSON.parse(xhr.responseText) }
-      catch (er) { return options.callback(er, xhr)        }
-    }
-
-    options.callback(null, xhr, xhr.body)
-  }
-
-} // request
-
-request.withCredentials = false;
-request.DEFAULT_TIMEOUT = DEFAULT_TIMEOUT;
-
-//
-// HTTP method shortcuts
-//
-
-var shortcuts = [ 'get', 'put', 'post', 'head' ];
-shortcuts.forEach(function(shortcut) {
-  var method = shortcut.toUpperCase();
-  var func   = shortcut.toLowerCase();
-
-  request[func] = function(opts) {
-    if(typeof opts === 'string')
-      opts = {'method':method, 'uri':opts};
-    else {
-      opts = JSON.parse(JSON.stringify(opts));
-      opts.method = method;
-    }
-
-    var args = [opts].concat(Array.prototype.slice.apply(arguments, [1]));
-    return request.apply(this, args);
-  }
-})
-
-//
-// CouchDB shortcut
-//
-
-request.couch = function(options, callback) {
-  if(typeof options === 'string')
-    options = {'uri':options}
-
-  // Just use the request API to do JSON.
-  options.json = true
-  if(options.body)
-    options.json = options.body
-  delete options.body
-
-  callback = callback || noop
-
-  var xhr = request(options, couch_handler)
-  return xhr
-
-  function couch_handler(er, resp, body) {
-    if(er)
-      return callback(er, resp, body)
-
-    if((resp.statusCode < 200 || resp.statusCode > 299) && body.error) {
-      // The body is a Couch JSON object indicating the error.
-      er = new Error('CouchDB error: ' + (body.error.reason || body.error.error))
-      for (var key in body)
-        er[key] = body[key]
-      return callback(er, resp, body);
-    }
-
-    return callback(er, resp, body);
-  }
-}
-
-//
-// Utility
-//
-
-function noop() {}
-
-function getLogger() {
-  var logger = {}
-    , levels = ['trace', 'debug', 'info', 'warn', 'error']
-    , level, i
-
-  for(i = 0; i < levels.length; i++) {
-    level = levels[i]
-
-    logger[level] = noop
-    if(typeof console !== 'undefined' && console && console[level])
-      logger[level] = formatted(console, level)
-  }
-
-  return logger
-}
-
-function formatted(obj, method) {
-  return formatted_logger
-
-  function formatted_logger(str, context) {
-    if(typeof context === 'object')
-      str += ' ' + JSON.stringify(context)
-
-    return obj[method].call(obj, str)
-  }
-}
-
-// Return whether a URL is a cross-domain request.
-function is_crossDomain(url) {
-  var rurl = /^([\w\+\.\-]+:)(?:\/\/([^\/?#:]*)(?::(\d+))?)?/
-
-  // jQuery #8138, IE may throw an exception when accessing
-  // a field from window.location if document.domain has been set
-  var ajaxLocation
-  try { ajaxLocation = location.href }
-  catch (e) {
-    // Use the href attribute of an A element since IE will modify it given document.location
-    ajaxLocation = document.createElement( "a" );
-    ajaxLocation.href = "";
-    ajaxLocation = ajaxLocation.href;
-  }
-
-  var ajaxLocParts = rurl.exec(ajaxLocation.toLowerCase()) || []
-    , parts = rurl.exec(url.toLowerCase() )
-
-  var result = !!(
-    parts &&
-    (  parts[1] != ajaxLocParts[1]
-    || parts[2] != ajaxLocParts[2]
-    || (parts[3] || (parts[1] === "http:" ? 80 : 443)) != (ajaxLocParts[3] || (ajaxLocParts[1] === "http:" ? 80 : 443))
-    )
-  )
-
-  //console.debug('is_crossDomain('+url+') -> ' + result)
-  return result
-}
-
-// MIT License from http://phpjs.org/functions/base64_encode:358
-function b64_enc (data) {
-    // Encodes string using MIME base64 algorithm
-    var b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-    var o1, o2, o3, h1, h2, h3, h4, bits, i = 0, ac = 0, enc="", tmp_arr = [];
-
-    if (!data) {
-        return data;
-    }
-
-    // assume utf8 data
-    // data = this.utf8_encode(data+'');
-
-    do { // pack three octets into four hexets
-        o1 = data.charCodeAt(i++);
-        o2 = data.charCodeAt(i++);
-        o3 = data.charCodeAt(i++);
-
-        bits = o1<<16 | o2<<8 | o3;
-
-        h1 = bits>>18 & 0x3f;
-        h2 = bits>>12 & 0x3f;
-        h3 = bits>>6 & 0x3f;
-        h4 = bits & 0x3f;
-
-        // use hexets to index into b64, and append result to encoded string
-        tmp_arr[ac++] = b64.charAt(h1) + b64.charAt(h2) + b64.charAt(h3) + b64.charAt(h4);
-    } while (i < data.length);
-
-    enc = tmp_arr.join('');
-
-    switch (data.length % 3) {
-        case 1:
-            enc = enc.slice(0, -2) + '==';
-        break;
-        case 2:
-            enc = enc.slice(0, -1) + '=';
-        break;
-    }
-
-    return enc;
-}
-
-})()
-},{"./xmlhttprequest":10}],10:[function(require,module,exports){
-(function(){
-
-!function(window) {
-  if(typeof exports === 'undefined')
-    throw new Error('Cannot find global "exports" object. Is this really CommonJS?')
-  if(typeof module === 'undefined')
-    throw new Error('Cannot find global "module" object. Is this really CommonJS?')
-  if(!module.exports)
-    throw new Error('Cannot find global "module.exports" object. Is this really CommonJS?')
-
-  // Define globals to simulate a browser environment.
-  window = window || {}
-
-  var document = window.document || {}
-  if(!window.document)
-    window.document = document
-
-  var navigator = window.navigator || {}
-  if(!window.navigator)
-    window.navigator = navigator
-
-  if(!navigator.userAgent)
-    navigator.userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_2) AppleWebKit/534.51.22 (KHTML, like Gecko) Version/5.1.1 Safari/534.51.22';
-
-  // Remember the old values in window. If the inner code changes anything, export that as a module and restore the old window value.
-  var win = {}
-    , key
-
-  for (key in window)
-    if(window.hasOwnProperty(key))
-      win[key] = window[key]
-
-  run_code()
-
-  for (key in window)
-    if(window.hasOwnProperty(key))
-      if(window[key] !== win[key]) {
-        exports[key] = window[key]
-        window[key] = win[key]
-      }
-
-  function run_code() {
-    // Begin browser file: XMLHttpRequest.js
-/**
-* XMLHttpRequest.js Copyright (C) 2011 Sergey Ilinsky (http://www.ilinsky.com)
-*
-* This work is free software; you can redistribute it and/or modify
-* it under the terms of the GNU Lesser General Public License as published by
-* the Free Software Foundation; either version 2.1 of the License, or
-* (at your option) any later version.
-*
-* This work is distributed in the hope that it will be useful,
-* but without any warranty; without even the implied warranty of
-* merchantability or fitness for a particular purpose. See the
-* GNU Lesser General Public License for more details.
-*
-* You should have received a copy of the GNU Lesser General Public License
-* along with this library; if not, write to the Free Software Foundation, Inc.,
-* 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-*/
-
-(function () {
-
-	// Save reference to earlier defined object implementation (if any)
-	var oXMLHttpRequest = window.XMLHttpRequest;
-
-	// Define on browser type
-	var bGecko  = !!window.controllers;
-	var bIE     = !!window.document.namespaces;
-	var bIE7    = bIE && window.navigator.userAgent.match(/MSIE 7.0/);
-
-	// Enables "XMLHttpRequest()" call next to "new XMLHttpRequest()"
-	function fXMLHttpRequest() {
-		this._object  = oXMLHttpRequest && !bIE7 ? new oXMLHttpRequest : new window.ActiveXObject("Microsoft.XMLHTTP");
-		this._listeners = [];
-	}
-
-	// Constructor
-	function cXMLHttpRequest() {
-		return new fXMLHttpRequest;
-	}
-	cXMLHttpRequest.prototype = fXMLHttpRequest.prototype;
-
-	// BUGFIX: Firefox with Firebug installed would break pages if not executed
-	if (bGecko && oXMLHttpRequest.wrapped) {
-		cXMLHttpRequest.wrapped = oXMLHttpRequest.wrapped;
-	}
-
-	// Constants
-	cXMLHttpRequest.UNSENT            = 0;
-	cXMLHttpRequest.OPENED            = 1;
-	cXMLHttpRequest.HEADERS_RECEIVED  = 2;
-	cXMLHttpRequest.LOADING           = 3;
-	cXMLHttpRequest.DONE              = 4;
-
-	// Interface level constants
-	cXMLHttpRequest.prototype.UNSENT            = cXMLHttpRequest.UNSENT;
-	cXMLHttpRequest.prototype.OPENED            = cXMLHttpRequest.OPENED;
-	cXMLHttpRequest.prototype.HEADERS_RECEIVED  = cXMLHttpRequest.HEADERS_RECEIVED;
-	cXMLHttpRequest.prototype.LOADING           = cXMLHttpRequest.LOADING;
-	cXMLHttpRequest.prototype.DONE              = cXMLHttpRequest.DONE;
-
-	// Public Properties
-	cXMLHttpRequest.prototype.readyState    = cXMLHttpRequest.UNSENT;
-	cXMLHttpRequest.prototype.responseText  = '';
-	cXMLHttpRequest.prototype.responseXML   = null;
-	cXMLHttpRequest.prototype.status        = 0;
-	cXMLHttpRequest.prototype.statusText    = '';
-
-	// Priority proposal
-	cXMLHttpRequest.prototype.priority    = "NORMAL";
-
-	// Instance-level Events Handlers
-	cXMLHttpRequest.prototype.onreadystatechange  = null;
-
-	// Class-level Events Handlers
-	cXMLHttpRequest.onreadystatechange  = null;
-	cXMLHttpRequest.onopen              = null;
-	cXMLHttpRequest.onsend              = null;
-	cXMLHttpRequest.onabort             = null;
-
-	// Public Methods
-	cXMLHttpRequest.prototype.open  = function(sMethod, sUrl, bAsync, sUser, sPassword) {
-		// http://www.w3.org/TR/XMLHttpRequest/#the-open-method
-		var sLowerCaseMethod = sMethod.toLowerCase();
-		if (sLowerCaseMethod == "connect" || sLowerCaseMethod == "trace" || sLowerCaseMethod == "track") {
-			// Using a generic error and an int - not too sure all browsers support correctly
-			// http://dvcs.w3.org/hg/domcore/raw-file/tip/Overview.html#securityerror, so, this is safer
-			// XXX should do better than that, but this is OT to XHR.
-			throw new Error(18);
-		}
-
-		// Delete headers, required when object is reused
-		delete this._headers;
-
-		// When bAsync parameter value is omitted, use true as default
-		if (arguments.length < 3) {
-			bAsync  = true;
-		}
-
-		// Save async parameter for fixing Gecko bug with missing readystatechange in synchronous requests
-		this._async   = bAsync;
-
-		// Set the onreadystatechange handler
-		var oRequest  = this;
-		var nState    = this.readyState;
-		var fOnUnload = null;
-
-		// BUGFIX: IE - memory leak on page unload (inter-page leak)
-		if (bIE && bAsync) {
-			fOnUnload = function() {
-				if (nState != cXMLHttpRequest.DONE) {
-					fCleanTransport(oRequest);
-					// Safe to abort here since onreadystatechange handler removed
-					oRequest.abort();
-				}
-			};
-			window.attachEvent("onunload", fOnUnload);
-		}
-
-		// Add method sniffer
-		if (cXMLHttpRequest.onopen) {
-			cXMLHttpRequest.onopen.apply(this, arguments);
-		}
-
-		if (arguments.length > 4) {
-			this._object.open(sMethod, sUrl, bAsync, sUser, sPassword);
-		} else if (arguments.length > 3) {
-			this._object.open(sMethod, sUrl, bAsync, sUser);
-		} else {
-			this._object.open(sMethod, sUrl, bAsync);
-		}
-
-		this.readyState = cXMLHttpRequest.OPENED;
-		fReadyStateChange(this);
-
-		this._object.onreadystatechange = function() {
-			if (bGecko && !bAsync) {
-				return;
-			}
-
-			// Synchronize state
-			oRequest.readyState   = oRequest._object.readyState;
-			fSynchronizeValues(oRequest);
-
-			// BUGFIX: Firefox fires unnecessary DONE when aborting
-			if (oRequest._aborted) {
-				// Reset readyState to UNSENT
-				oRequest.readyState = cXMLHttpRequest.UNSENT;
-
-				// Return now
-				return;
-			}
-
-			if (oRequest.readyState == cXMLHttpRequest.DONE) {
-				// Free up queue
-				delete oRequest._data;
-
-				// Uncomment these lines for bAsync
-				/**
-				 * if (bAsync) {
-				 * 	fQueue_remove(oRequest);
-				 * }
-				 */
-
-				fCleanTransport(oRequest);
-
-				// Uncomment this block if you need a fix for IE cache
-				/**
-				 * // BUGFIX: IE - cache issue
-				 * if (!oRequest._object.getResponseHeader("Date")) {
-				 * 	// Save object to cache
-				 * 	oRequest._cached  = oRequest._object;
-				 *
-				 * 	// Instantiate a new transport object
-				 * 	cXMLHttpRequest.call(oRequest);
-				 *
-				 * 	// Re-send request
-				 * 	if (sUser) {
-				 * 		if (sPassword) {
-				 * 			oRequest._object.open(sMethod, sUrl, bAsync, sUser, sPassword);
-				 * 		} else {
-				 * 			oRequest._object.open(sMethod, sUrl, bAsync);
-				 * 		}
-				 *
-				 * 		oRequest._object.setRequestHeader("If-Modified-Since", oRequest._cached.getResponseHeader("Last-Modified") || new window.Date(0));
-				 * 		// Copy headers set
-				 * 		if (oRequest._headers) {
-				 * 			for (var sHeader in oRequest._headers) {
-				 * 				// Some frameworks prototype objects with functions
-				 * 				if (typeof oRequest._headers[sHeader] == "string") {
-				 * 					oRequest._object.setRequestHeader(sHeader, oRequest._headers[sHeader]);
-				 * 				}
-				 * 			}
-				 * 		}
-				 * 		oRequest._object.onreadystatechange = function() {
-				 * 			// Synchronize state
-				 * 			oRequest.readyState   = oRequest._object.readyState;
-				 *
-				 * 			if (oRequest._aborted) {
-				 * 				//
-				 * 				oRequest.readyState = cXMLHttpRequest.UNSENT;
-				 *
-				 * 				// Return
-				 * 				return;
-				 * 			}
-				 *
-				 * 			if (oRequest.readyState == cXMLHttpRequest.DONE) {
-				 * 				// Clean Object
-				 * 				fCleanTransport(oRequest);
-				 *
-				 * 				// get cached request
-				 * 				if (oRequest.status == 304) {
-				 * 					oRequest._object  = oRequest._cached;
-				 * 				}
-				 *
-				 * 				//
-				 * 				delete oRequest._cached;
-				 *
-				 * 				//
-				 * 				fSynchronizeValues(oRequest);
-				 *
-				 * 				//
-				 * 				fReadyStateChange(oRequest);
-				 *
-				 * 				// BUGFIX: IE - memory leak in interrupted
-				 * 				if (bIE && bAsync) {
-				 * 					window.detachEvent("onunload", fOnUnload);
-				 * 				}
-				 *
-				 * 			}
-				 * 		};
-				 * 		oRequest._object.send(null);
-				 *
-				 * 		// Return now - wait until re-sent request is finished
-				 * 		return;
-				 * 	};
-				 */
-
-				// BUGFIX: IE - memory leak in interrupted
-				if (bIE && bAsync) {
-					window.detachEvent("onunload", fOnUnload);
-				}
-
-				// BUGFIX: Some browsers (Internet Explorer, Gecko) fire OPEN readystate twice
-				if (nState != oRequest.readyState) {
-					fReadyStateChange(oRequest);
-				}
-
-				nState  = oRequest.readyState;
-			}
-		};
-	};
-
-	cXMLHttpRequest.prototype.send = function(vData) {
-		// Add method sniffer
-		if (cXMLHttpRequest.onsend) {
-			cXMLHttpRequest.onsend.apply(this, arguments);
-		}
-
-		if (!arguments.length) {
-			vData = null;
-		}
-
-		// BUGFIX: Safari - fails sending documents created/modified dynamically, so an explicit serialization required
-		// BUGFIX: IE - rewrites any custom mime-type to "text/xml" in case an XMLNode is sent
-		// BUGFIX: Gecko - fails sending Element (this is up to the implementation either to standard)
-		if (vData && vData.nodeType) {
-			vData = window.XMLSerializer ? new window.XMLSerializer().serializeToString(vData) : vData.xml;
-			if (!this._headers["Content-Type"]) {
-				this._object.setRequestHeader("Content-Type", "application/xml");
-			}
-		}
-
-		this._data = vData;
-
-		/**
-		 * // Add to queue
-		 * if (this._async) {
-		 * 	fQueue_add(this);
-		 * } else { */
-		fXMLHttpRequest_send(this);
-		 /**
-		 * }
-		 */
-	};
-
-	cXMLHttpRequest.prototype.abort = function() {
-		// Add method sniffer
-		if (cXMLHttpRequest.onabort) {
-			cXMLHttpRequest.onabort.apply(this, arguments);
-		}
-
-		// BUGFIX: Gecko - unnecessary DONE when aborting
-		if (this.readyState > cXMLHttpRequest.UNSENT) {
-			this._aborted = true;
-		}
-
-		this._object.abort();
-
-		// BUGFIX: IE - memory leak
-		fCleanTransport(this);
-
-		this.readyState = cXMLHttpRequest.UNSENT;
-
-		delete this._data;
-
-		/* if (this._async) {
-	 	* 	fQueue_remove(this);
-	 	* }
-	 	*/
-	};
-
-	cXMLHttpRequest.prototype.getAllResponseHeaders = function() {
-		return this._object.getAllResponseHeaders();
-	};
-
-	cXMLHttpRequest.prototype.getResponseHeader = function(sName) {
-		return this._object.getResponseHeader(sName);
-	};
-
-	cXMLHttpRequest.prototype.setRequestHeader  = function(sName, sValue) {
-		// BUGFIX: IE - cache issue
-		if (!this._headers) {
-			this._headers = {};
-		}
-
-		this._headers[sName]  = sValue;
-
-		return this._object.setRequestHeader(sName, sValue);
-	};
-
-	// EventTarget interface implementation
-	cXMLHttpRequest.prototype.addEventListener  = function(sName, fHandler, bUseCapture) {
-		for (var nIndex = 0, oListener; oListener = this._listeners[nIndex]; nIndex++) {
-			if (oListener[0] == sName && oListener[1] == fHandler && oListener[2] == bUseCapture) {
-				return;
-			}
-		}
-
-		// Add listener
-		this._listeners.push([sName, fHandler, bUseCapture]);
-	};
-
-	cXMLHttpRequest.prototype.removeEventListener = function(sName, fHandler, bUseCapture) {
-		for (var nIndex = 0, oListener; oListener = this._listeners[nIndex]; nIndex++) {
-			if (oListener[0] == sName && oListener[1] == fHandler && oListener[2] == bUseCapture) {
-				break;
-			}
-		}
-
-		// Remove listener
-		if (oListener) {
-			this._listeners.splice(nIndex, 1);
-		}
-	};
-
-	cXMLHttpRequest.prototype.dispatchEvent = function(oEvent) {
-		var oEventPseudo  = {
-			'type':             oEvent.type,
-			'target':           this,
-			'currentTarget':    this,
-			'eventPhase':       2,
-			'bubbles':          oEvent.bubbles,
-			'cancelable':       oEvent.cancelable,
-			'timeStamp':        oEvent.timeStamp,
-			'stopPropagation':  function() {},  // There is no flow
-			'preventDefault':   function() {},  // There is no default action
-			'initEvent':        function() {}   // Original event object should be initialized
-		};
-
-		// Execute onreadystatechange
-		if (oEventPseudo.type == "readystatechange" && this.onreadystatechange) {
-			(this.onreadystatechange.handleEvent || this.onreadystatechange).apply(this, [oEventPseudo]);
-		}
-
-
-		// Execute listeners
-		for (var nIndex = 0, oListener; oListener = this._listeners[nIndex]; nIndex++) {
-			if (oListener[0] == oEventPseudo.type && !oListener[2]) {
-				(oListener[1].handleEvent || oListener[1]).apply(this, [oEventPseudo]);
-			}
-		}
-
-	};
-
-	//
-	cXMLHttpRequest.prototype.toString  = function() {
-		return '[' + "object" + ' ' + "XMLHttpRequest" + ']';
-	};
-
-	cXMLHttpRequest.toString  = function() {
-		return '[' + "XMLHttpRequest" + ']';
-	};
-
-	/**
-	 * // Queue manager
-	 * var oQueuePending = {"CRITICAL":[],"HIGH":[],"NORMAL":[],"LOW":[],"LOWEST":[]},
-	 * aQueueRunning = [];
-	 * function fQueue_add(oRequest) {
-	 * 	oQueuePending[oRequest.priority in oQueuePending ? oRequest.priority : "NORMAL"].push(oRequest);
-	 * 	//
-	 * 	setTimeout(fQueue_process);
-	 * };
-	 *
-	 * function fQueue_remove(oRequest) {
-	 * 	for (var nIndex = 0, bFound = false; nIndex < aQueueRunning.length; nIndex++)
-	 * 	if (bFound) {
-	 * 		aQueueRunning[nIndex - 1] = aQueueRunning[nIndex];
-	 * 	} else {
-	 * 		if (aQueueRunning[nIndex] == oRequest) {
-	 * 			bFound  = true;
-	 * 		}
-	 * }
-	 *
-	 * 	if (bFound) {
-	 * 		aQueueRunning.length--;
-	 * 	}
-	 *
-	 *
-	 * 	//
-	 * 	setTimeout(fQueue_process);
-	 * };
-	 *
-	 * function fQueue_process() {
-	 * if (aQueueRunning.length < 6) {
-	 * for (var sPriority in oQueuePending) {
-	 * if (oQueuePending[sPriority].length) {
-	 * var oRequest  = oQueuePending[sPriority][0];
-	 * oQueuePending[sPriority]  = oQueuePending[sPriority].slice(1);
-	 * //
-	 * aQueueRunning.push(oRequest);
-	 * // Send request
-	 * fXMLHttpRequest_send(oRequest);
-	 * break;
-	 * }
-	 * }
-	 * }
-	 * };
-	 */
-
-	// Helper function
-	function fXMLHttpRequest_send(oRequest) {
-		oRequest._object.send(oRequest._data);
-
-		// BUGFIX: Gecko - missing readystatechange calls in synchronous requests
-		if (bGecko && !oRequest._async) {
-			oRequest.readyState = cXMLHttpRequest.OPENED;
-
-			// Synchronize state
-			fSynchronizeValues(oRequest);
-
-			// Simulate missing states
-			while (oRequest.readyState < cXMLHttpRequest.DONE) {
-				oRequest.readyState++;
-				fReadyStateChange(oRequest);
-				// Check if we are aborted
-				if (oRequest._aborted) {
-					return;
-				}
-			}
-		}
-	}
-
-	function fReadyStateChange(oRequest) {
-		// Sniffing code
-		if (cXMLHttpRequest.onreadystatechange){
-			cXMLHttpRequest.onreadystatechange.apply(oRequest);
-		}
-
-
-		// Fake event
-		oRequest.dispatchEvent({
-			'type':       "readystatechange",
-			'bubbles':    false,
-			'cancelable': false,
-			'timeStamp':  new Date + 0
-		});
-	}
-
-	function fGetDocument(oRequest) {
-		var oDocument = oRequest.responseXML;
-		var sResponse = oRequest.responseText;
-		// Try parsing responseText
-		if (bIE && sResponse && oDocument && !oDocument.documentElement && oRequest.getResponseHeader("Content-Type").match(/[^\/]+\/[^\+]+\+xml/)) {
-			oDocument = new window.ActiveXObject("Microsoft.XMLDOM");
-			oDocument.async       = false;
-			oDocument.validateOnParse = false;
-			oDocument.loadXML(sResponse);
-		}
-
-		// Check if there is no error in document
-		if (oDocument){
-			if ((bIE && oDocument.parseError !== 0) || !oDocument.documentElement || (oDocument.documentElement && oDocument.documentElement.tagName == "parsererror")) {
-				return null;
-			}
-		}
-		return oDocument;
-	}
-
-	function fSynchronizeValues(oRequest) {
-		try { oRequest.responseText = oRequest._object.responseText;  } catch (e) {}
-		try { oRequest.responseXML  = fGetDocument(oRequest._object); } catch (e) {}
-		try { oRequest.status       = oRequest._object.status;        } catch (e) {}
-		try { oRequest.statusText   = oRequest._object.statusText;    } catch (e) {}
-	}
-
-	function fCleanTransport(oRequest) {
-		// BUGFIX: IE - memory leak (on-page leak)
-		oRequest._object.onreadystatechange = new window.Function;
-	}
-
-	// Internet Explorer 5.0 (missing apply)
-	if (!window.Function.prototype.apply) {
-		window.Function.prototype.apply = function(oRequest, oArguments) {
-			if (!oArguments) {
-				oArguments  = [];
-			}
-			oRequest.__func = this;
-			oRequest.__func(oArguments[0], oArguments[1], oArguments[2], oArguments[3], oArguments[4]);
-			delete oRequest.__func;
-		};
-	}
-
-	// Register new object with window
-	window.XMLHttpRequest = cXMLHttpRequest;
-
+    return function nextTick(fn) {
+        setTimeout(fn, 0);
+    };
 })();
 
-    // End browser file: XMLHttpRequest.js
-  }
-}(typeof window !== 'undefined' ? window : {});
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
 
-})()
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+}
+
+// TODO(shtylman)
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+
 },{}]},{},[1])
 ;
