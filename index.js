@@ -16,7 +16,10 @@ module.exports = function() {
   var color = 0
   var CubeMaterial = THREE.MeshBasicMaterial
   var cube = new THREE.CubeGeometry( 50, 50, 50 )
+  var wireframeCube = new THREE.CubeGeometry(50.5, 50.5 , 50.5)
   var wireframe = true, fill = true
+  var wireframeOptions = { color: 0x000000, wireframe: true, wireframeLinewidth: 1, opacity: 0.8 }
+  var wireframeMaterial = new THREE.MeshBasicMaterial(wireframeOptions)
   
   var colors = ['2ECC71', '3498DB', '34495E', 'E67E22', 'ECF0F1'].map(function(c) { return hex2rgb(c) })
   for( var c = 0; c < 5; c++ ) {
@@ -158,14 +161,14 @@ module.exports = function() {
     wireframe = bool
     scene.children
       .filter(function(el) { return el.isVoxel })
-      .map(function(mesh) { mesh.children[1].visible = bool })
+      .map(function(mesh) { mesh.wireMesh.visible = bool })
   }
 
   exports.setFill = function(bool) {
     fill = bool
     scene.children
       .filter(function(el) { return el.isVoxel })
-      .map(function(mesh) { mesh.children[0].material.visible = bool })
+      .map(function(mesh) { mesh.material.visible = bool })
   }
 
   exports.showGrid = function(bool) {
@@ -183,18 +186,18 @@ module.exports = function() {
 
   function addVoxel() {
     if (brush.position.y === 2000) return
-    var materials = [
-      new CubeMaterial( { vertexColors: THREE.VertexColors } ),
-      new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } )
-    ]
-    materials[0].color.setRGB( colors[color][0], colors[color][1], colors[color][2] )
-    var voxel = THREE.SceneUtils.createMultiMaterialObject( cube, materials )
+    var cubeMaterial = new CubeMaterial( { vertexColors: THREE.VertexColors, transparent: true } )
+    cubeMaterial.color.setRGB( colors[color][0], colors[color][1], colors[color][2] )
+    var voxel = new THREE.Mesh( cube, cubeMaterial )
+    voxel.wireMesh = new THREE.Mesh( wireframeCube, wireframeMaterial )
     voxel.isVoxel = true
-    voxel.overdraw = true
     voxel.position.copy(brush.position)
+    voxel.wireMesh.position.copy(voxel.position)
+    voxel.overdraw = true
     voxel.matrixAutoUpdate = false
     voxel.updateMatrix()
     scene.add( voxel )
+    scene.add( voxel.wireMesh )
   }
 
   function v2h(value) {
@@ -427,20 +430,23 @@ module.exports = function() {
     plane = new THREE.Mesh( new THREE.PlaneGeometry( 1000, 1000 ), new THREE.MeshBasicMaterial() )
     plane.rotation.x = - Math.PI / 2
     plane.visible = false
+    plane.isPlane = true
     scene.add( plane )
 
     mouse2D = new THREE.Vector3( 0, 10000, 0.5 )
 
     // Brush
+    
     var brushMaterials = [
-      new CubeMaterial( { vertexColors: THREE.VertexColors, opacity: 0.5 } ),
+      new CubeMaterial( { vertexColors: THREE.VertexColors, opacity: 0.5, transparent: true } ),
       new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } )
     ]
     brushMaterials[0].color.setRGB(colors[0][0], colors[0][1], colors[0][2])
     brush = THREE.SceneUtils.createMultiMaterialObject( cube, brushMaterials )
+    
     brush.isBrush = true
     brush.position.y = 2000
-    brush.overdraw = true
+    brush.overdraw = false
     scene.add( brush )
 
     // Lights
@@ -462,7 +468,11 @@ module.exports = function() {
     directionalLight.position.normalize()
     scene.add( directionalLight )
 
-    renderer = new THREE.CanvasRenderer()
+    var hasWebGL =  ( function () { try { return !! window.WebGLRenderingContext && !! document.createElement( 'canvas' ).getContext( 'experimental-webgl' ); } catch( e ) { return false; } } )()
+
+    if (hasWebGL) renderer = new THREE.WebGLRenderer({antialias: true})
+    else renderer = new THREE.CanvasRenderer()
+
     renderer.setSize( window.innerWidth, window.innerHeight )
 
     container.appendChild(renderer.domElement)
@@ -495,7 +505,8 @@ module.exports = function() {
   }
 
   function getIntersecting() {
-    var intersectable = scene.children.map(function(c) { if (c.isVoxel) return c.children[0]; return c; })
+    var intersectable = []
+    scene.children.map(function(c) { if (c.isVoxel || c.isPlane) intersectable.push(c); })
     var intersections = raycaster.intersectObjects( intersectable )
     if (intersections.length > 0) {
       var intersect = intersections[ 0 ].object.isBrush ? intersections[ 1 ] : intersections[ 0 ]
@@ -512,7 +523,7 @@ module.exports = function() {
     }
 
     var intersect = getIntersecting()
-
+    
     if ( intersect ) {
       var normal = intersect.face.normal.clone()
       normal.applyMatrix4( intersect.object.matrixRotationWorld )
@@ -530,7 +541,8 @@ module.exports = function() {
         if (brush.currentCube.join('') !== newCube.join('')) {
           if ( isShiftDown ) {
             if ( intersect.object !== plane ) {
-              scene.remove( intersect.object.parent )
+              scene.remove( intersect.object.wireMesh )
+              scene.remove( intersect.object )
             }
           } else {
             addVoxel()
@@ -543,6 +555,7 @@ module.exports = function() {
         if ( intersect.object !== plane ) {
           objectHovered = intersect.object
           objectHovered.material.opacity = 0.5
+          brush.position.y = 2000
           return
         }
       } else {
@@ -602,7 +615,8 @@ module.exports = function() {
 
         if ( intersect.object != plane ) {
 
-          scene.remove( intersect.object.parent )
+          scene.remove( intersect.object.wireMesh )
+          scene.remove( intersect.object )
 
         }
       } else {
@@ -686,19 +700,19 @@ module.exports = function() {
         if ( code.charAt( 3 ) == "1" ) current.z += data[ i ++ ] - 32
         if ( code.charAt( 4 ) == "1" ) current.c += data[ i ++ ] - 32
         if ( code.charAt( 0 ) == "1" ) {
-          var materials = [
-            new CubeMaterial( { vertexColors: THREE.VertexColors } ),
-            new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } )
-          ]
+          var cubeMaterial = new CubeMaterial( { vertexColors: THREE.VertexColors, transparent: true } )
           var col = colors[current.c] || colors[0]
-          materials[0].color.setRGB( col[0], col[1], col[2] )
-          var voxel = THREE.SceneUtils.createMultiMaterialObject( cube, materials )
+          cubeMaterial.color.setRGB( col[0], col[1], col[2] )
+          var voxel = new THREE.Mesh( cube, cubeMaterial )
+          voxel.wireMesh = new THREE.Mesh( wireframeCube, wireframeMaterial )
           voxel.isVoxel = true
           voxel.position.x = current.x * 50 + 25
           voxel.position.y = current.y * 50 + 25
           voxel.position.z = current.z * 50 + 25
+          voxel.wireMesh.position.copy(voxel.position)
           voxel.overdraw = true
           scene.add( voxel )
+          scene.add( voxel.wireMesh )
         }
       }
     }
@@ -723,7 +737,7 @@ module.exports = function() {
         current.y = ( object.position.y - 25 ) / 50
         current.z = ( object.position.z - 25 ) / 50
 
-        var colorString = ['r', 'g', 'b'].map(function(col) { return object.children[0].material.color[col] }).join('')
+        var colorString = ['r', 'g', 'b'].map(function(col) { return object.material.color[col] }).join('')
         // this string matching of floating point values to find an index seems a little sketchy
         for (var i = 0; i < colors.length; i++) if (colors[i].join('') === colorString) current.c = i
         voxels.push({x: current.x, y: current.y + 1, z: current.z , c: current.c + 1})
