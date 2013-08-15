@@ -4,7 +4,7 @@
   "dependencies": {
     "three": "0.55.0",
     "voxel-share": "0.3.0",
-    "browser-request": "~0.2.1"
+    "browser-request": "git+https://github.com/iriscouch/browser-request.git"
   },
   "devDependencies": {
     "browservefy": "0.0.9",
