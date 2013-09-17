@@ -297,8 +297,10 @@ module.exports = function() {
       // todo:  better way to update color of existing blocks
       scene.children
         .filter(function(el) { return el.isVoxel })
-        .map(function(mesh) { scene.remove(mesh) })
-      buildFromHash('A')
+        .map(function(mesh) { scene.remove(mesh.wireMesh); scene.remove(mesh) })
+      var frameMask = 'A'
+      if (currentFrame != 0) frameMask = 'A' + currentFrame
+      buildFromHash(frameMask)
     })
     picker.on('hide', function(e) {
       // todo:  add a better remove for the colorpicker.
@@ -472,20 +474,24 @@ module.exports = function() {
 
     var ambientLight = new THREE.AmbientLight( 0x606060 )
     scene.add( ambientLight )
-
-    var directionalLight = new THREE.DirectionalLight( 0xffffff )
-    directionalLight.position.x = Math.random() - 0.5
-    directionalLight.position.y = Math.random() - 0.5
-    directionalLight.position.z = Math.random() - 0.5
-    directionalLight.position.normalize()
-    scene.add( directionalLight )
-
-    var directionalLight = new THREE.DirectionalLight( 0x808080 )
-    directionalLight.position.x = Math.random() - 0.5
-    directionalLight.position.y = Math.random() - 0.5
-    directionalLight.position.z = Math.random() - 0.5
-    directionalLight.position.normalize()
-    scene.add( directionalLight )
+    
+    var directionalLight = new THREE.DirectionalLight( 0xffffff );
+		directionalLight.position.set( 1, 0.75, 0.5 ).normalize();
+		scene.add( directionalLight );
+    				
+    // var directionalLight = new THREE.DirectionalLight( 0xffffff )
+    // directionalLight.position.x = Math.random() - 0.5
+    // directionalLight.position.y = Math.random() - 0.5
+    // directionalLight.position.z = Math.random() - 0.5
+    // directionalLight.position.normalize()
+    // scene.add( directionalLight )
+    // 
+    // var directionalLight = new THREE.DirectionalLight( 0x808080 )
+    // directionalLight.position.x = Math.random() - 0.5
+    // directionalLight.position.y = Math.random() - 0.5
+    // directionalLight.position.z = Math.random() - 0.5
+    // directionalLight.position.normalize()
+    // scene.add( directionalLight )
 
     var hasWebGL =  ( function () { try { return !! window.WebGLRenderingContext && !! document.createElement( 'canvas' ).getContext( 'experimental-webgl' ); } catch( e ) { return false; } } )()
 
@@ -749,7 +755,8 @@ module.exports = function() {
     var hash = window.location.hash.substr( 1 ),
     hashChunks = hash.split(':'),
     chunks = {}
-  
+
+    animationFrames = []
     for( var j = 0, n = hashChunks.length; j < n; j++ ) {
       chunk = hashChunks[j].split('/')
       chunks[chunk[0]] = chunk[1]
