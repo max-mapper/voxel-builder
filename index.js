@@ -20,7 +20,8 @@ module.exports = function() {
   var wireframe = true, fill = true
   var wireframeOptions = { color: 0x000000, wireframe: true, wireframeLinewidth: 1, opacity: 0.8 }
   var wireframeMaterial = new THREE.MeshBasicMaterial(wireframeOptions)
-  
+  var animationFrames = []
+  var currentFrame = 0
   var colors = ['2ECC71', '3498DB', '34495E', 'E67E22', 'ECF0F1'].map(function(c) { return hex2rgb(c) })
   for( var c = 0; c < 5; c++ ) {
     addColorToPalette(c)
@@ -185,21 +186,28 @@ module.exports = function() {
     buildFromHash()
   }
 
-  function addVoxel() {
-    if (brush.position.y === 2000) return
+  function addVoxel(x, y, z, c) {
     var cubeMaterial = new CubeMaterial( { vertexColors: THREE.VertexColors, transparent: true } )
-    cubeMaterial.color.setRGB( colors[color][0], colors[color][1], colors[color][2] )
+    var col = colors[c] || colors[0]
+    cubeMaterial.color.setRGB( col[0], col[1], col[2] )
+    var wireframeMaterial = new THREE.MeshBasicMaterial(wireframeOptions)
+    wireframeMaterial.color.setRGB( col[0]-0.05, col[1]-0.05, col[2]-0.05 )
     var voxel = new THREE.Mesh( cube, cubeMaterial )
     voxel.wireMesh = new THREE.Mesh( wireframeCube, wireframeMaterial )
     voxel.wireMesh.isVoxel = true
     voxel.isVoxel = true
-    voxel.position.copy(brush.position)
+    voxel.position.x = x
+    voxel.position.y = y
+    voxel.position.z = z
     voxel.wireMesh.position.copy(voxel.position)
-    voxel.overdraw = true
+    voxel.wireMesh.visible = wireframe
     voxel.matrixAutoUpdate = false
     voxel.updateMatrix()
+    voxel.name = x + "," + y + "," + z
+    voxel.overdraw = true
     scene.add( voxel )
     scene.add( voxel.wireMesh )
+    console.log("A: " + voxel.name)
   }
 
   function v2h(value) {
@@ -247,12 +255,22 @@ module.exports = function() {
   function zoom(delta) {
     var origin = {x: 0, y: 0, z: 0}
     var distance = camera.position.distanceTo(origin)
-    var tooFar = distance  > 2000
+    var tooFar = distance  > 3000
     var tooClose = distance < 300
     if (delta > 0 && tooFar) return
     if (delta < 0 && tooClose) return
     radius = distance // for mouse drag calculations to be correct
     camera.translateZ( delta )
+  }
+
+  function setIsometricAngle() {
+
+    theta += 90
+
+    camera.position.x = radius * Math.sin( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
+    camera.position.y = radius * Math.sin( phi * Math.PI / 360 )
+    camera.position.z = radius * Math.cos( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
+    camera.updateMatrix()
   }
 
   function addColor(e) {
@@ -280,8 +298,10 @@ module.exports = function() {
       // todo:  better way to update color of existing blocks
       scene.children
         .filter(function(el) { return el.isVoxel })
-        .map(function(mesh) { scene.remove(mesh) })
-      buildFromHash('A')
+        .map(function(mesh) { scene.remove(mesh.wireMesh); scene.remove(mesh) })
+      var frameMask = 'A'
+      if (currentFrame != 0) frameMask = 'A' + currentFrame
+      buildFromHash(frameMask)
     })
     picker.on('hide', function(e) {
       // todo:  add a better remove for the colorpicker.
@@ -455,20 +475,24 @@ module.exports = function() {
 
     var ambientLight = new THREE.AmbientLight( 0x606060 )
     scene.add( ambientLight )
-
-    var directionalLight = new THREE.DirectionalLight( 0xffffff )
-    directionalLight.position.x = Math.random() - 0.5
-    directionalLight.position.y = Math.random() - 0.5
-    directionalLight.position.z = Math.random() - 0.5
-    directionalLight.position.normalize()
-    scene.add( directionalLight )
-
-    var directionalLight = new THREE.DirectionalLight( 0x808080 )
-    directionalLight.position.x = Math.random() - 0.5
-    directionalLight.position.y = Math.random() - 0.5
-    directionalLight.position.z = Math.random() - 0.5
-    directionalLight.position.normalize()
-    scene.add( directionalLight )
+    
+    var directionalLight = new THREE.DirectionalLight( 0xffffff );
+		directionalLight.position.set( 1, 0.75, 0.5 ).normalize();
+		scene.add( directionalLight );
+    				
+    // var directionalLight = new THREE.DirectionalLight( 0xffffff )
+    // directionalLight.position.x = Math.random() - 0.5
+    // directionalLight.position.y = Math.random() - 0.5
+    // directionalLight.position.z = Math.random() - 0.5
+    // directionalLight.position.normalize()
+    // scene.add( directionalLight )
+    // 
+    // var directionalLight = new THREE.DirectionalLight( 0x808080 )
+    // directionalLight.position.x = Math.random() - 0.5
+    // directionalLight.position.y = Math.random() - 0.5
+    // directionalLight.position.z = Math.random() - 0.5
+    // directionalLight.position.normalize()
+    // scene.add( directionalLight )
 
     var hasWebGL =  ( function () { try { return !! window.WebGLRenderingContext && !! document.createElement( 'canvas' ).getContext( 'experimental-webgl' ); } catch( e ) { return false; } } )()
 
@@ -547,7 +571,7 @@ module.exports = function() {
               scene.remove( intersect.object )
             }
           } else {
-            addVoxel()
+            if (brush.position.y != 2000) addVoxel(brush.position.x, brush.position.y, brush.position.z, color)
           }
         }
         updateBrush()
@@ -569,7 +593,6 @@ module.exports = function() {
   }
 
   function onDocumentMouseMove( event ) {
-
     event.preventDefault()
 
     if ( isMouseDown ) {
@@ -612,21 +635,15 @@ module.exports = function() {
     var intersect = getIntersecting()
 
     if ( intersect ) {
-
       if ( isShiftDown ) {
-
         if ( intersect.object != plane ) {
-
           scene.remove( intersect.object.wireMesh )
           scene.remove( intersect.object )
-
         }
       } else {
-        addVoxel()
+        if (brush.position.y != 2000) addVoxel(brush.position.x, brush.position.y, brush.position.z, color)  
       }
-
     }
-
 
     updateHash()
     render()
@@ -650,6 +667,9 @@ module.exports = function() {
       case 16: isShiftDown = true; break
       case 17: isCtrlDown = true; break
       case 18: isAltDown = true; break
+      case 81: changeFrame(); break
+      case 65: setIsometricAngle(); break
+      case 87: addFrame(); break
     }
 
   }
@@ -661,10 +681,75 @@ module.exports = function() {
       case 16: isShiftDown = false; break
       case 17: isCtrlDown = false; break
       case 18: isAltDown = false; break
-
     }
   }
 
+  function changeFrame(){
+    nextFrame = (currentFrame + 1) % animationFrames.length
+    animate(nextFrame)
+    currentFrame = nextFrame
+  }
+
+  function addFrame() {
+    animationFrames.push(animationFrames[currentFrame])
+    changeFrame()
+    updateHash()
+  }
+
+  function animate(frame) {
+    diff = getFrameDiff(currentFrame, frame)
+    removed = diff[0]
+    added = diff[1]
+    remove = {}
+    removed.map(function(pos){
+      var p = pos.split(',')
+      var key = p[0] + "," + p[1] + "," + p[2]
+      remove[key] = 1
+    })
+    //go through this loop in reverse instead of decrementing the counter every time an item is removed
+    for ( i = scene.children.length - 1; i >= 0 ; i -- ) {
+      c = scene.children[ i ]
+      if (remove[c.name] == 1){
+        if ( c.isVoxel ) {
+          scene.remove(c.wireMesh)
+          scene.remove(c)
+        }
+      }
+    }
+    
+    for(var i = 0; i < added.length; i++){
+      var v = added[i].split(',')
+      addVoxel(v[0], v[1], v[2], v[3])
+    }
+  }
+  
+  Array.prototype.diff = function(a) {
+    return this.filter(function(i) {return !(a.indexOf(i) > -1);});
+  };
+
+  function getFrameDiff(frame1, frame2) {
+    pos1 = getPositionsFromData(decode(animationFrames[frame1]))
+    pos2 = getPositionsFromData(decode(animationFrames[frame2]))
+    removed = pos1.diff(pos2)
+    added = pos2.diff(pos1)
+    return [removed, added]
+  }
+  
+  function getPositionsFromData(data) {
+    var current = { x: 0, y: 0, z: 0, c: 0 }
+    var voxels = []
+    var i = 0, l = data.length
+    while (i < l){
+    var code = data[ i ++ ].toString( 2 )
+      if ( code.charAt( 1 ) == "1" ) current.x += data[ i ++ ] - 32
+      if ( code.charAt( 2 ) == "1" ) current.y += data[ i ++ ] - 32
+      if ( code.charAt( 3 ) == "1" ) current.z += data[ i ++ ] - 32
+      if ( code.charAt( 4 ) == "1" ) current.c += data[ i ++ ] - 32
+      voxels.push((current.x * 50 + 25) + "," + (current.y * 50 + 25) + "," + (current.z * 50 + 25) + "," + current.c)
+    }
+    return voxels
+  }
+  
 
   function buildFromHash(hashMask) {
 
@@ -672,8 +757,13 @@ module.exports = function() {
     hashChunks = hash.split(':'),
     chunks = {}
 
+    animationFrames = []
     for( var j = 0, n = hashChunks.length; j < n; j++ ) {
-      chunks[hashChunks[j][0]] = hashChunks[j].substr(2)
+      chunk = hashChunks[j].split('/')
+      chunks[chunk[0]] = chunk[1]
+      if (chunk[0].charAt(0) == 'A') {
+        animationFrames.push(chunk[1])
+      }
     }
 
     if ( (!hashMask || hashMask == 'C') && chunks['C'] )
@@ -683,15 +773,17 @@ module.exports = function() {
       for(var c = 0, nC = hexColors.length/6; c < nC; c++) {
         var hex = hexColors.substr(c*6,6)
         colors[c] = hex2rgb(hex)
-
         addColorToPalette(c)
       }
     }
-
-    if ( (!hashMask || hashMask == 'A') && chunks['A'] ) {
+    var frameMask = 'A'
+    
+    if (currentFrame != 0) frameMask = 'A' + currentFrame
+    
+    if ( (!hashMask || hashMask == frameMask) && chunks[frameMask] ) {
       // decode geo
       var current = { x: 0, y: 0, z: 0, c: 0 }
-      var data = decode( chunks['A'] )
+      var data = decode( chunks[frameMask] )
       var i = 0, l = data.length
 
       while ( i < l ) {
@@ -702,30 +794,16 @@ module.exports = function() {
         if ( code.charAt( 3 ) == "1" ) current.z += data[ i ++ ] - 32
         if ( code.charAt( 4 ) == "1" ) current.c += data[ i ++ ] - 32
         if ( code.charAt( 0 ) == "1" ) {
-          var cubeMaterial = new CubeMaterial( { vertexColors: THREE.VertexColors, transparent: true } )
-          var col = colors[current.c] || colors[0]
-          cubeMaterial.color.setRGB( col[0], col[1], col[2] )
-          var voxel = new THREE.Mesh( cube, cubeMaterial )
-          voxel.wireMesh = new THREE.Mesh( wireframeCube, wireframeMaterial )
-          voxel.isVoxel = true
-          voxel.position.x = current.x * 50 + 25
-          voxel.position.y = current.y * 50 + 25
-          voxel.position.z = current.z * 50 + 25
-          voxel.wireMesh.position.copy(voxel.position)
-          voxel.overdraw = true
-          scene.add( voxel )
-          scene.add( voxel.wireMesh )
+          addVoxel(current.x * 50 + 25, current.y * 50 + 25, current.z * 50 + 25, current.c)
         }
       }
     }
-
-
+  
     updateHash()
 
   }
 
   function updateHash() {
-
     var data = [], voxels = [], code
     var current = { x: 0, y: 0, z: 0, c: 0 }
     var last = { x: 0, y: 0, z: 0, c: 0 }
@@ -782,18 +860,26 @@ module.exports = function() {
           last.c = current.c
 
         }
-
       }
-
     }
+
     data = encode( data )
+    animationFrames[currentFrame] = data
 
     var cData = '';
-    for( var c in colors ) {
-      cData+=rgb2hex(colors[c]);
+    for(var i = 0; i < colors.length; i++){
+      cData+=rgb2hex(colors[i]);
     }
 
-    var outHash = "#"+(data.length?("A/" + data):'')+(data.length&&cData?':':'')+(cData?("C/"+cData):'')
+    var outHash = "#"+(cData?("C/"+cData):'')
+    for(var i = 0; i < animationFrames.length; i++){
+      if (i == 0){
+        outHash = outHash + ":A/" + animationFrames[i]
+      }
+      else {
+        outHash = outHash + ":A" + i + '/' + animationFrames[i] 
+      }  
+    }
     window.location.replace(outHash)
     return voxels
   }
@@ -804,7 +890,7 @@ module.exports = function() {
     var funcString = "var voxels = " + JSON.stringify(voxels) + ";"
     funcString += 'var dimensions = ' + JSON.stringify(dimensions) + ';'
     funcString += 'voxels.map(function(voxel) {' +
-      'game.setBlock([position.x + voxel[0], position.y + voxel[1], position.z + voxel[2]], voxel[3])' +
+    'game.setBlock([position.x + voxel[0], position.y + voxel[1], position.z + voxel[2]], voxel[3])' +
     '});'
     return funcString
   }
