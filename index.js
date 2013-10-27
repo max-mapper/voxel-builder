@@ -206,7 +206,6 @@ module.exports = function() {
     voxel.overdraw = true
     scene.add( voxel )
     scene.add( voxel.wireMesh )
-    console.log("A: " + voxel.name)
   }
 
   function v2h(value) {
