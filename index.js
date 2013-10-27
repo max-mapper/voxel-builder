@@ -511,7 +511,7 @@ module.exports = function() {
     window.addEventListener('mousewheel', mousewheel, false);
 
     function mousewheel( event ) {
-      zoom(event.wheelDeltaY)
+      zoom(event.wheelDeltaY || event.detail)
     }
 
     window.addEventListener( 'resize', onWindowResize, false )
