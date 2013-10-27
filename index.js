@@ -191,6 +191,7 @@ module.exports = function() {
     cubeMaterial.color.setRGB( colors[color][0], colors[color][1], colors[color][2] )
     var voxel = new THREE.Mesh( cube, cubeMaterial )
     voxel.wireMesh = new THREE.Mesh( wireframeCube, wireframeMaterial )
+    voxel.wireMesh.isVoxel = true
     voxel.isVoxel = true
     voxel.position.copy(brush.position)
     voxel.wireMesh.position.copy(voxel.position)
