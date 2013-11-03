@@ -1,202 +1,97 @@
-<!DOCTYPE HTML>
+<!DOCTYPE html>
 <html lang="en">
+
   <head>
-    <title>Voxel Critter Creator</title>
     <meta charset="utf-8">
-    <link rel"shortcut icon" href="favicon.ico">
-    <link href="flatui/css/bootstrap.css" rel="stylesheet">
-    <link href="flatui/css/flat-ui.css" rel="stylesheet">
-    <link href="colorpicker/css/colorpicker.css" rel="stylesheet">
-    <link href="style.css" rel="stylesheet">
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="generator" content="DocPad v6.53.0" />
+    <title>Voxel Builder</title>
+    <link rel="stylesheet" href="css/normalize.css" type="text/css"
+    media="screen">
+    <link rel="stylesheet" href="css/index.css" type="text/css" media="screen">
   </head>
+
   <body>
-    <div id="instructions">
-      <h3 class="demo-panel-title">Voxel Critter Creator</h3>
-      
-      <select class="actionsMenu" value="Actions" tabindex="1">
-        <option value="noop" selected="selected">Actions</option>
-        <option value="viewInstructions">View Instructions</option>
-        <option value="loadExample">Load Example Bunny</option>
-        <!-- <option value="browseTwitter">Recently Made Critters</option> -->
-        <option value="browseRecent">Recently Made Critters</option>
-        <option value="share">Publish + Share Critter</option>
-        <option value="export">Export PNG</option>
-        <option value="reset">Reset</option>
-        <option value="about">About</option>
-      </select>
-
-      <div class="share mrl">
+    <div id="wrapper">
+      <header>
+        <h1><a href="/">Voxel Builder</a></h1>
+        <p>Easy cube-based 3D design with DIY 2D/3D printing</p>
+        <nav>
+          <ul>
+            <li class="download"><a href="edit.html" class="topcoat-button--cta">Launch Builder</a>
+            </li>
+          </ul>
+        </nav>
+      </header>
+      <section id="hero">
         <ul>
-          <li>
-            <label class="share-label" for="share-toggle2">Grid</label>
-            <div data-action="showGrid" class="toggle">
-              <label class="toggle-radio" for="share-toggle2">ON</label>
-              <input type="radio" name="share-toggles" id="share-toggle2" value="toggle1" checked="checked">
-              <label class="toggle-radio" for="share-toggle1">OFF</label>
-              <input type="radio" name="share-toggles" id="share-toggle1" value="toggle2">
-            </div>
-          </li>
-          <li>
-            <label class="share-label" for="share-toggle4">Wireframe</label>
-            <div data-action="setWireframe" class="toggle">
-              <label class="toggle-radio" for="share-toggle4">ON</label>
-              <input type="radio" name="share-toggles2" id="share-toggle4" value="toggle1" checked="checked">
-              <label class="toggle-radio" for="share-toggle3">OFF</label>
-              <input type="radio" name="share-toggles2" id="share-toggle3" value="toggle2">
-            </div>
-          </li>
-          <li>
-            <label class="share-label" for="share-toggle4">Fill</label>
-            <div data-action="setFill" class="toggle">
-              <label class="toggle-radio" for="share-toggle6">ON</label>
-              <input type="radio" name="share-toggles3" id="share-toggle6" value="toggle1" checked="checked">
-              <label class="toggle-radio" for="share-toggle5">OFF</label>
-              <input type="radio" name="share-toggles3" id="share-toggle5" value="toggle2">
-            </div>
-          </li>
-          <li>
-            <label class="share-label" for="share-toggle6">Shadows</label>
-            <div data-action="setShadows" class="toggle">
-              <label class="toggle-radio" for="share-toggle8">ON</label>
-              <input type="radio" name="share-toggles4" id="share-toggle8" value="toggle1">
-              <label class="toggle-radio" for="share-toggle7">OFF</label>
-              <input type="radio" name="share-toggles4" id="share-toggle7" value="toggle2" checked="checked">
-            </div>
-          </li>
+          <li id="desktop-preview"></li>
+          <li id="mobile-preview"></li>
         </ul>
-      </div> <!-- /share -->
-      
-      <div class="row color-container">
-        <div class="span3">
-            <div class="btn-group color-picker">
-              <a class="btn btn-primary colorPickButton active" href="#"><i data-color="0" class="color"></i></a>
-              <a class="btn btn-primary colorPickButton" href="#"><i data-color="1" class="color"></i></a>
-              <a class="btn btn-primary colorPickButton" href="#"><i data-color="2" class="color"></i></a>
-              <a class="btn btn-primary colorPickButton" href="#"><i data-color="3" class="color"></i></a>
-              <a class="btn btn-primary colorPickButton" href="#"><i data-color="4" class="color"></i></a>
-              <a class="btn btn-primary colorAddButton" data-color="#000000" href="#"><i data-color="-1" class="colorAdd">++</i></a>
-            </div>
-        </div>
-      </div>
-      <div class="share">
-        <div class="tile">
-          <img class="tile-image big-illustration" alt="" src="brain-share.png" />
-          <h4>Publish your critter!</h4>
-          <p>Others will be able to download and view it.</p>
-          <a id="shareButton" class="btn btn-primary btn-large btn-block">Share critter</a>
-        </div>
-      </div>
-      
-      <!-- <div class="sliderContainer">
-        <div id="slider" class="ui-slider">
-          <div class="ui-slider-segment"></div>
-          <div class="ui-slider-segment"></div>
-        </div>
-      </div> -->
-      
-     <div id="output"></div>
-    </div>
-    
-    <div id="welcome" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-        <h3 id="myModalLabel">Welcome to Voxel Critter Creator</h3>
-      </div>
-      <div class="modal-body">
-        <div class="span3 hello">
-          <p><h4>Create your own critter!</h4></p>
-          <p>Use your mouse to place blocks. When you are done designing your critter you can share it with the world.</p>
-          <p><img src="critter.png"></p>
-        </div>
-        <div class="span3">
-          <div class="tile controls">
-            <p><h4>Controls</h4></p>
-            <p><strong>click + drag</strong> to adjust angle.</p>
-            <p><strong>click</strong> to place a voxel.</p>
-            <p><strong>shift</strong> to delete a voxel.</p>
-            <p><strong>alt</strong> to bulk edit voxels.</p>
-            <p><strong>1-5</strong> to change color.</p>
-            <p><strong>+/-</strong> or <strong>scroll</strong> to zoom.</p>
-            <p><strong>drop</strong> an creature .png image to load it in</p>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn" data-dismiss="modal" aria-hidden="true">Okay!</button>
-      </div>
-    </div>
-    
-    <div id="share" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-        <h3 id="myModalLabel">Share Critter</h3>
-      </div>
-      <div class="modal-body">
-        <div class="control-group">
-          <input type="text" class="login-field name" value="" placeholder="Critter name (optional)"
-          id="login-name">
-        </div>
-        <div class="control-group">
-          <input type="text" class="login-field author" value="" placeholder="Author name (optional)"
-          id="login-pass">
-        </div>
-        
-        <div class="share-form"></div>
-        
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-cancel" data-dismiss="modal" aria-hidden="true">Close</button>
-      </div>
-    </div>
-    
-    <div id="about" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-        <h3 id="myModalLabel">About</h3>
-      </div>
-      <div class="modal-body">
-        <p>Made by <a href="http://twitter.com/maxogden">@maxogden</a> for the <a href="http://twitter.com/voxeljs">@voxeljs</a> project.</p>
-        <p>Based originally on Voxel Painter by Mr. Doob.</p>
-        <p>Report bugs <a href="https://github.com/maxogden/voxel-painter">on Github</a>.</p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
-      </div>
-    </div>
-    
-    <div id="browse" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-        <h3 id="myModalLabel">Recent Creations</h3>
-      </div>
-      <div class="modal-body">
-        <div class="demo-browser-content">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
-      </div>
-    </div>
-    
-    <!-- <div class="hidden">
-      <a class="twitter-timeline" href="https://twitter.com/search?q=%23voxelcritter" data-widget-id="315522378715238401">Tweets about "#voxelcritter"</a>
-      <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
-    </div> -->
-    
-    <script type="text/javascript" src="flatui-deps.js"></script>
-    <script type="text/javascript" src="colorpicker/js/bootstrap-colorpicker.js"></script>
-    <script type="text/javascript" src="bundle.js"></script>
-    
-    <script>
-      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      </section>
+      <section class="features">
+        <p><strong>Voxel Builder</strong> is an open source tool that lets anyone design and edit 3D voxel (cube) models easily, right in their web browser.</p>
+      </section>
+      <section>
+        <h3>
+          <a name="how-it-works" class="anchor" href="#how-it-works"><span class="octicon octicon-link"></span></a>
+          How it works
+        </h3>
 
-      ga('create', 'UA-42257469-1', 'voxelbuilder.com');
-      ga('send', 'pageview');
+        <p>This will work with any voxel data, but I built it to work with another app I made called <a href="http://voxelbuilder.com">Voxel Builder</a>. One of the users of DIY.org named burgzt took a <a href="http://voxelsprite.0fps.net/?src=/uploads/50562d83243216d714000002.png">3D Mario</a> designed by Mikola Lysenko and <a href="https://diy.org/burgzt/001em5">made a copy</a> in the builder app:</p>
 
+        <p><a href="http://github.com/maxogden/ndarray-stl/blob/master/img/mario-builder.png" target="_blank"><img src="http://github.com/maxogden/ndarray-stl/raw/master/img/mario-builder.png" alt="mario" style="max-width:100%;"></a></p>
+
+        <p>When you export your creation from Voxel Builder you get a PNG file with the voxel data magically encoded inside. That means you can upload the PNG photo of your creation into any app that knows how to extract it (such as the WebGl powered <a href="http://shama.github.io/voxel-critter/">voxel-critter</a>) and you can then fully view edit your 3D in that app.</p>
+
+        <p>For example, this image has encoded voxel data hidden inside:</p>
+
+        <p><a href="https://github-camo.global.ssl.fastly.net/e840a2fed3b267d9f2a79d378e644c9ba36bb0a0/687474703a2f2f692e696d6775722e636f6d2f6363426b4d56592e706e67" target="_blank"><img src="https://github-camo.global.ssl.fastly.net/e840a2fed3b267d9f2a79d378e644c9ba36bb0a0/687474703a2f2f692e696d6775722e636f6d2f6363426b4d56592e706e67" alt="mario-encoded" style="max-width:100%;"></a></p>
+
+        <p>In the <a href="http://maxogden.github.io/ndarray-stl/?png=http://i.imgur.com/ccBkMVY.png">ndarray-stl demo</a> I load the mario image (or any PNG url, you can specify one in the address bar), read the voxel data from the PNG and then generate an STL file from the voxels using ndarray-stl. You can also generate a smoothed voxel model. STL files can then be loaded into programs like MakerWare and 3D printed!</p>
+
+        <p><a href="http://github.com/maxogden/ndarray-stl/blob/master/img/mario-makerware.png" target="_blank"><img src="http://github.com/maxogden/ndarray-stl/raw/master/img/mario-makerware.png" alt="mario-makerware" style="max-width:100%;"></a></p>
+
+        <p>The above shows three STL files loaded into MakerWare: unsmoothed, smoothed with <a href="http://www.merl.com/papers/docs/TR99-24.pdf">surface nets</a> and smoothed with <a href="https://en.wikipedia.org/wiki/Marching_cubes">marching cubes</a>.</p>
+
+        <p><a name="printed-marios"></a><a href="#printed-marios"><img src="http://github.com/maxogden/ndarray-stl/raw/master/img/marios-irl.png" alt="marios" style="max-width:100%;"></a></p>
+
+        <p>Here are the 3 variations of Mario printed out by <a href="https://github.com/vladikoff">@vladikoff</a> at the Mozilla San Francisco office. You can view more photos from his print <a href="https://plus.google.com/106106671604413824025/posts/Nfw4aRmttEr">here</a>. Thanks, Vlad!</p>
+
+        <p>Mikola Lysenko, the original designer of the 3D mario, has a Shapeways store where you can order a <a href="http://www.shapeways.com/model/702952/8-bit-voxel-sprite.html?materialId=26">full color mario printed in sandstone</a> and have it shipped to you.</p>
+
+        <p><a href="http://0fps.wordpress.com/2012/09/18/turning-8-bit-sprites-into-printable-3d-models/"><img src="http://github.com/maxogden/ndarray-stl/raw/master/img/sprite-process.png" alt="process" style="max-width:100%;"></a></p>
+
+        <p>Mikola also wrote <a href="http://0fps.wordpress.com/2012/09/18/turning-8-bit-sprites-into-printable-3d-models/">a post</a> about the process of creating the 3D mario based on 2D sprites.</p>
+
+        <p>At this point in time there are over <a href="http://derekr.github.io/voxel-painter-admin/">400 creations</a> that have been made with Voxel Builder. Any of them can be loaded into the ndarray-stl demo. Here are some good ones:</p>
+
+        <ul>
+        <li><a href="http://maxogden.github.io/ndarray-stl/?png=http://i.imgur.com/XawptQv.png">elephant</a></li>
+        <li><a href="http://maxogden.github.io/ndarray-stl/?png=http://i.imgur.com/Gv5Q3UP.png">outrigger boat</a></li>
+        <li><a href="http://maxogden.github.io/ndarray-stl/?png=http://i.imgur.com/ZcSVaqy.png">race car</a></li>
+        </ul><h2>
+      </section>
+    </div>
+    <footer class="site">
+      <ul>
+        <li id="twitter"><a href="http://twitter.com/voxeljs"></a>
+        </li>
+        <li id="github"><a href="http://github.com/maxogden/voxel-painter"></a>
+        </li>
+      </ul>
+    </footer>
+    <script type="text/javascript">
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-38522202-1']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+       var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+       ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+       var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+       })();
     </script>
   </body>
+
 </html>
