@@ -20,7 +20,9 @@ module.exports = function() {
   var CubeMaterial = THREE.MeshBasicMaterial
   var cube = new THREE.CubeGeometry( 50, 50, 50 )
   var wireframeCube = new THREE.CubeGeometry(50.5, 50.5 , 50.5)
-  var wireframe = true, fill = true
+  var wireframe = true, fill = true, animation = false, animating = false, animationInterval
+  var manualAnimating = false
+  var sliderEl, playPauseEl
   var wireframeOptions = { color: 0x000000, wireframe: true, wireframeLinewidth: 1, opacity: 0.8 }
   var wireframeMaterial = new THREE.MeshBasicMaterial(wireframeOptions)
   var animationFrames = []
@@ -135,11 +137,10 @@ module.exports = function() {
     })
   }
   
-  exports.getProxyImage = function(imgURL, cb) {
-    var proxyURL = 'http://maxcors.jit.su/' + imgURL // until imgur gets CORS on GETs
+  exports.getImage = function(imgURL, cb) {
     var img = new Image()
     img.crossOrigin = ''
-    img.src = proxyURL
+    img.src = imgURL
     img.onload = function() {
       cb(img)
     }
@@ -168,6 +169,11 @@ module.exports = function() {
       .filter(function(el) { return el.isVoxel })
       .map(function(mesh) { mesh.wireMesh.visible = bool })
   }
+  
+  exports.toggleAnimation = function(bool) {
+    animation = bool
+    $('.animationControls').toggle()
+  }
 
   exports.setFill = function(bool) {
     fill = bool
@@ -189,6 +195,13 @@ module.exports = function() {
     buildFromHash()
   }
 
+  exports.playPause = function() {
+    animating = !animating
+    playPauseEl.toggleClass('fui-play', !animating).toggleClass('fui-pause', animating)
+    if (animating) animationInterval = setInterval(changeFrame, 250)
+    else clearInterval(animationInterval)
+  }
+  
   function addVoxel(x, y, z, c) {
     var cubeMaterial = new CubeMaterial( { vertexColors: THREE.VertexColors, transparent: true } )
     var col = colors[c] || colors[0]
@@ -197,6 +210,7 @@ module.exports = function() {
     wireframeMaterial.color.setRGB( col[0]-0.05, col[1]-0.05, col[2]-0.05 )
     var voxel = new THREE.Mesh( cube, cubeMaterial )
     voxel.wireMesh = new THREE.Mesh( wireframeCube, wireframeMaterial )
+    voxel.wireMesh.isVoxel = true
     voxel.isVoxel = true
     voxel.position.x = x
     voxel.position.y = y
@@ -215,6 +229,7 @@ module.exports = function() {
     value = parseInt(value).toString(16)
     return value.length < 2 ? '0' + value : value
   }
+  
   function rgb2hex(rgb) {
     return v2h( rgb[ 0 ] * 255 ) + v2h( rgb[ 1 ] * 255 ) + v2h( rgb[ 2 ] * 255 );
   }
@@ -330,7 +345,7 @@ module.exports = function() {
     $('#browse img').live('click', function(ev) {
       var url = $(ev.target).attr('src')
       $('#browse button').click()
-      exports.getProxyImage(url, function(img) {
+      exports.getImage(url, function(img) {
         importImage(img)
       })
     })
@@ -376,25 +391,36 @@ module.exports = function() {
     // Init tags input
     $("#tagsinput").tagsInput();
 
+    sliderEl = $("#slider")
+    playPauseEl = $('.play-pause')
+    var addFrameButton = $('.plus-button')
+    var removeFrameButton = $('.minus-button')
+    
     // Init jQuery UI slider
-    $("#slider").slider({
-        min: 1,
-        max: 4,
-        value: 1,
-        orientation: "horizontal",
-        range: "min",
-    });
-
+    sliderEl.slider({
+      min: 1,
+      max: 1,
+      value: 1,
+      orientation: "horizontal",
+      range: "min",
+      change: function( event, ui ) {
+        if (manualAnimating) return
+        var val = ui.value
+        var nextFrame = val - 1
+        animate(nextFrame)
+        currentFrame = nextFrame
+      }
+    })
+    
+    addFrameButton.click(addFrame)
+    removeFrameButton.click(removeFrame)
+    
+    playPauseEl.click(function(e) {
+      exports.playPause()
+    })
+    
     // JS input/textarea placeholder
     $("input, textarea").placeholder();
-
-    // Make pagination demo work
-    $(".pagination a").click(function() {
-        if (!$(this).parent().hasClass("previous") && !$(this).parent().hasClass("next")) {
-            $(this).parent().siblings("li").removeClass("active");
-            $(this).parent().addClass("active");
-        }
-    });
 
     $(".btn-group a").click(function() {
         $(this).siblings().removeClass("active");
@@ -405,7 +431,7 @@ module.exports = function() {
     $("a[href='#']").click(function() {
         return false
     });
-
+    
   }
 
   function init() {
@@ -422,6 +448,7 @@ module.exports = function() {
     camera.position.z = radius * Math.cos( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 )
 
     scene = new THREE.Scene()
+    window.scene = scene
 
     // Grid
 
@@ -519,6 +546,8 @@ module.exports = function() {
     window.addEventListener( 'resize', onWindowResize, false )
 
     if ( window.location.hash ) buildFromHash()
+    
+    updateHash()
 
   }
 
@@ -665,6 +694,7 @@ module.exports = function() {
       case 56: exports.setColor(7); break
       case 57: exports.setColor(8); break
       case 48: exports.setColor(9); break
+      case 32: exports.playPause(); break
       case 16: isShiftDown = true; break
       case 17: isCtrlDown = true; break
       case 18: isAltDown = true; break
@@ -678,25 +708,53 @@ module.exports = function() {
   function onDocumentKeyUp( event ) {
 
     switch( event.keyCode ) {
-
       case 16: isShiftDown = false; break
       case 17: isCtrlDown = false; break
       case 18: isAltDown = false; break
     }
   }
 
-  function changeFrame(){
+  function changeFrame() {
+    if (animationFrames.length === 0) return
     nextFrame = (currentFrame + 1) % animationFrames.length
     animate(nextFrame)
     currentFrame = nextFrame
+    manualAnimating = true
+    sliderEl.slider( "option", "value", currentFrame + 1)
+    manualAnimating = false
   }
 
   function addFrame() {
     animationFrames.push(animationFrames[currentFrame])
     changeFrame()
     updateHash()
+    sliderEl.slider( "option", "max", animationFrames.length )
+  }
+  
+  function removeFrame() {
+    animationFrames.splice(currentFrame, 1)
+    if (currentFrame === animationFrames.length) currentFrame--
+    loadCurrentFrame()
+    sliderEl.slider( "option", "max", animationFrames.length )
+    manualAnimating = true
+    sliderEl.slider( "option", "value", currentFrame + 1)
+    manualAnimating = false
   }
 
+  function loadCurrentFrame() {
+    scene.children.filter(function(c) {
+      return (c.isVoxel)
+    }).map(function(c) {
+      scene.remove(c.wireMesh)
+      scene.remove(c)
+    })
+    var positions = getPositionsFromData(decode(animationFrames[currentFrame]))
+    for(var i = 0; i < positions.length; i++){
+      var v = positions[i].split(',')
+      addVoxel(v[0], v[1], v[2], v[3])
+    }
+  }
+  
   function animate(frame) {
     diff = getFrameDiff(currentFrame, frame)
     removed = diff[0]
@@ -766,6 +824,8 @@ module.exports = function() {
         animationFrames.push(chunk[1])
       }
     }
+    
+    sliderEl.slider( "option", "max", animationFrames.length)
 
     if ( (!hashMask || hashMask == 'C') && chunks['C'] )
     {
