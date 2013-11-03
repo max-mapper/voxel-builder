@@ -1,0 +1,199 @@
+<!DOCTYPE HTML>
+<html lang="en">
+  <head>
+    <title>Voxel Critter Creator</title>
+    <meta charset="utf-8">
+    <link rel"shortcut icon" href="favicon.ico">
+    <link href="flatui/css/bootstrap.css" rel="stylesheet">
+    <link href="flatui/css/flat-ui.css" rel="stylesheet">
+    <link href="colorpicker/css/colorpicker.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    
+  </head>
+  <body>
+    <div id="instructions">
+      <h3 class="demo-panel-title"><a href="/">Voxel Critter Creator</a></h3>
+      
+      <select class="actionsMenu" value="Actions" tabindex="1">
+        <option value="noop" selected="selected">Actions</option>
+        <option value="viewInstructions">View Instructions</option>
+        <option value="loadExample">Load Example Bunny</option>
+        <!-- <option value="browseTwitter">Recently Made Critters</option> -->
+        <option value="browseRecent">Recently Made Critters</option>
+        <option value="share">Publish + Share Critter</option>
+        <option value="export">Export PNG</option>
+        <option value="reset">Reset</option>
+        <option value="about">About</option>
+      </select>
+
+      <div class="share mrl">
+        <ul>
+          <li>
+            <label class="share-label" for="share-toggle2">Grid</label>
+            <div data-action="showGrid" class="toggle">
+              <label class="toggle-radio" for="share-toggle2">ON</label>
+              <input type="radio" name="share-toggles" id="share-toggle2" value="toggle1" checked="checked">
+              <label class="toggle-radio" for="share-toggle1">OFF</label>
+              <input type="radio" name="share-toggles" id="share-toggle1" value="toggle2">
+            </div>
+          </li>
+          <li>
+            <label class="share-label" for="share-toggle3">Wireframe</label>
+            <div data-action="setWireframe" class="toggle">
+              <label class="toggle-radio" for="share-toggle4">ON</label>
+              <input type="radio" name="share-toggles2" id="share-toggle4" value="toggle1" checked="checked">
+              <label class="toggle-radio" for="share-toggle3">OFF</label>
+              <input type="radio" name="share-toggles2" id="share-toggle3" value="toggle2">
+            </div>
+          </li>
+          <li>
+            <label class="share-label" for="share-toggle4">Animation</label>
+            <div data-action="toggleAnimation" class="toggle">
+              <label class="toggle-radio" for="share-toggle6">ON</label>
+              <input type="radio" name="share-toggles3" id="share-toggle6" value="toggle1">
+              <label class="toggle-radio" for="share-toggle5">OFF</label>
+              <input type="radio" name="share-toggles3" id="share-toggle5" value="toggle2" checked="checked">
+            </div>
+          </li>
+        </ul>
+      </div> <!-- /share -->
+      
+      <div class="row color-container">
+        <div class="span3">
+            <div class="btn-group color-picker">
+              <a class="btn btn-primary colorPickButton active" href="#"><i data-color="0" class="color"></i></a>
+              <a class="btn btn-primary colorPickButton" href="#"><i data-color="1" class="color"></i></a>
+              <a class="btn btn-primary colorPickButton" href="#"><i data-color="2" class="color"></i></a>
+              <a class="btn btn-primary colorPickButton" href="#"><i data-color="3" class="color"></i></a>
+              <a class="btn btn-primary colorPickButton" href="#"><i data-color="4" class="color"></i></a>
+              <a class="btn btn-primary colorAddButton" data-color="#000000" href="#"><i data-color="-1" class="colorAdd">++</i></a>
+            </div>
+        </div>
+      </div>
+      <div class="share">
+        <div class="tile">
+          <img class="tile-image big-illustration" alt="" src="img/brain-share.png" />
+          <p>Finished? Upload so others will be able to download and view it.</p>
+          <a id="shareButton" class="btn btn-primary btn-large btn-block">Upload critter</a>
+        </div>
+      </div>
+      
+     <div id="output"></div>
+    </div>
+    
+    <div class="animationControls">
+      <div class="playback">
+        <span class="play-pause fui-play"></span>
+      </div>
+      <div class="sliderContainer">
+        <div id="slider" class="ui-slider">
+        </div>
+      </div>
+      <div class="addRemove">
+        <span class="plus-button fui-plus"></span>
+        <span class="minus-button fui-cross"></span>
+      </div>
+    </div>
+    
+    <div id="welcome" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="myModalLabel">Welcome to Voxel Critter Creator</h3>
+      </div>
+      <div class="modal-body">
+        <div class="span3 hello">
+          <p><h4>Create your own critter!</h4></p>
+          <p>Use your mouse to place blocks. When you are done designing your critter you can share it with the world.</p>
+          <p><img src="img/critter.png"></p>
+        </div>
+        <div class="span3">
+          <div class="tile controls">
+            <p><h4>Controls</h4></p>
+            <p><strong>click + drag</strong> to adjust angle.</p>
+            <p><strong>click</strong> to place a voxel.</p>
+            <p><strong>shift</strong> to delete a voxel.</p>
+            <p><strong>alt</strong> to bulk edit voxels.</p>
+            <p><strong>1-5</strong> to change color.</p>
+            <p><strong>+/-</strong> or <strong>scroll</strong> to zoom.</p>
+            <p><strong>drop</strong> an creature .png image to load it in</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" data-dismiss="modal" aria-hidden="true">Okay!</button>
+      </div>
+    </div>
+    
+    <div id="share" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="myModalLabel">Share Critter</h3>
+      </div>
+      <div class="modal-body">
+        <div class="control-group">
+          <input type="text" class="login-field name" value="" placeholder="Critter name (optional)"
+          id="login-name">
+        </div>
+        <div class="control-group">
+          <input type="text" class="login-field author" value="" placeholder="Author name (optional)"
+          id="login-pass">
+        </div>
+        
+        <div class="share-form"></div>
+        
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-cancel" data-dismiss="modal" aria-hidden="true">Close</button>
+      </div>
+    </div>
+    
+    <div id="about" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="myModalLabel">About</h3>
+      </div>
+      <div class="modal-body">
+        <p>Made by <a href="http://twitter.com/maxogden">@maxogden</a> for the <a href="http://twitter.com/voxeljs">@voxeljs</a> project.</p>
+        <p>Based originally on Voxel Painter by Mr. Doob.</p>
+        <p>Report bugs <a href="https://github.com/maxogden/voxel-painter">on Github</a>.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+      </div>
+    </div>
+    
+    <div id="browse" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="myModalLabel">Recent Creations</h3>
+      </div>
+      <div class="modal-body">
+        <div class="demo-browser-content">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+      </div>
+    </div>
+    
+    <!-- <div class="hidden">
+      <a class="twitter-timeline" href="https://twitter.com/search?q=%23voxelcritter" data-widget-id="315522378715238401">Tweets about "#voxelcritter"</a>
+      <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+    </div> -->
+    
+    <script type="text/javascript" src="js/flatui-deps.js"></script>
+    <script type="text/javascript" src="colorpicker/js/bootstrap-colorpicker.js"></script>
+    <script type="text/javascript" src="bundle.js"></script>
+    
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-42257469-1', 'voxelbuilder.com');
+      ga('send', 'pageview');
+
+    </script>
+  </body>
+</html>

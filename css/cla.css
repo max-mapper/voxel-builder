@@ -1,0 +1,7 @@
+#content.narrow{max-width:500px}
+label.control-label{display:inline-block;width:120px;text-align:right;margin-right:10px}
+.control-group{margin-bottom:10px}
+.control-group.submit{margin:20px 132px 0}
+form{border:1px solid #ccc;padding:10px}
+.error label{color:#f00;font-weight:bold}
+#required{padding-bottom:5px;color:#f00;font-weight:bold}

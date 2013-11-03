@@ -1,179 +1,155 @@
-@import url("http://fonts.googleapis.com/css?family=Lato:400,700,900,400italic");
 @font-face {
-  font-family: "Flat-UI-Icons-16";
-  src: url("../fonts/Flat-UI-Icons-16.eot");
-  src: url("../fonts/Flat-UI-Icons-16.eot?#iefix") format("embedded-opentype"), url("../fonts/Flat-UI-Icons-16.woff") format("woff"), url("../fonts/Flat-UI-Icons-16.ttf") format("truetype"), url("../fonts/Flat-UI-Icons-16.svg#Flat-UI-Icons-16") format("svg");
+  font-family: 'Flat-UI-Icons';
+  src: url('../fonts/Flat-UI-Icons.eot');
+  src: url('../fonts/Flat-UI-Icons.woff') format('woff'), url('../fonts/Flat-UI-Icons.ttf') format('truetype'), url('../fonts/Flat-UI-Icons.svg') format('svg');
   font-weight: normal;
-  font-style: normal; }
-
+  font-style: normal;
+}
 /* Use the following CSS code if you want to use data attributes for inserting your icons */
 [data-icon]:before {
-  font-family: "Flat-UI-Icons-16";
+  font-family: 'Flat-UI-Icons';
   content: attr(data-icon);
   speak: none;
   font-weight: normal;
-  line-height: 1;
-  -webkit-font-smoothing: antialiased; }
-
+  font-variant: normal;
+  text-transform: none;
+  -webkit-font-smoothing: antialiased;
+}
 /* Use the following CSS code if you want to have a class per icon */
-/*Instead of a list of all class selectors,
- *you can use the generic selector below, but it's slower:
- *[class*="fui-"]:before { */
-.fui-volume-16:before, .fui-video-16:before, .fui-time-16:before, .fui-settings-16:before, .fui-plus-16:before, .fui-new-16:before, .fui-menu-16:before, .fui-man-16:before, .fui-mail-16:before, .fui-lock-16:before, .fui-location-16:before, .fui-heart-16:before, .fui-eye-16:before, .fui-cross-16:before, .fui-cmd-16:before, .fui-checkround-16:before, .fui-checkmark-16:before, .fui-camera-16:before, .fui-calendar-16:before, .fui-bubble-16:before {
-  font-family: "Flat-UI-Icons-16";
+/*
+Instead of a list of all class selectors,
+you can use the generic selector below, but it's slower:
+[class*="fui-"] {
+*/
+.fui-arrow-right,
+.fui-arrow-left,
+.fui-cmd,
+.fui-check-inverted,
+.fui-heart,
+.fui-location,
+.fui-plus,
+.fui-check,
+.fui-cross,
+.fui-list,
+.fui-new,
+.fui-video,
+.fui-photo,
+.fui-volume,
+.fui-time,
+.fui-eye,
+.fui-chat,
+.fui-search,
+.fui-user,
+.fui-mail,
+.fui-lock,
+.fui-gear,
+.fui-radio-unchecked,
+.fui-radio-checked,
+.fui-checkbox-unchecked,
+.fui-checkbox-checked,
+.fui-calendar-solid,
+.fui-pause,
+.fui-play,
+.fui-check-inverted-2 {
+  display: inline-block;
+  font-family: 'Flat-UI-Icons';
   speak: none;
   font-style: normal;
   font-weight: normal;
-  line-height: 1;
-  -webkit-font-smoothing: antialiased; }
-
-.fui-volume-16:before {
-  content: "\e000"; }
-
-.fui-video-16:before {
-  content: "\e001"; }
-
-.fui-time-16:before {
-  content: "\e002"; }
-
-.fui-settings-16:before {
-  content: "\e003"; }
-
-.fui-plus-16:before {
-  content: "\e004"; }
-
-.fui-new-16:before {
-  content: "\e005"; }
-
-.fui-menu-16:before {
-  content: "\e006"; }
-
-.fui-man-16:before {
-  content: "\e007"; }
-
-.fui-mail-16:before {
-  content: "\e008"; }
-
-.fui-lock-16:before {
-  content: "\e009"; }
-
-.fui-location-16:before {
-  content: "\e00a"; }
-
-.fui-heart-16:before {
-  content: "\e00b"; }
-
-.fui-eye-16:before {
-  content: "\e00c"; }
-
-.fui-cross-16:before {
-  content: "\e00d"; }
-
-.fui-cmd-16:before {
-  content: "\e00e"; }
-
-.fui-checkround-16:before {
-  content: "\e00f"; }
-
-.fui-checkmark-16:before {
-  content: "\e010"; }
-
-.fui-camera-16:before {
-  content: "\e011"; }
-
-.fui-calendar-16:before {
-  content: "\e012"; }
-
-.fui-bubble-16:before {
-  content: "\e013"; }
-
-@font-face {
-  font-family: "Flat-UI-Icons-24";
-  src: url("../fonts/Flat-UI-Icons-24.eot");
-  src: url("../fonts/Flat-UI-Icons-24.eot?#iefix") format("embedded-opentype"), url("../fonts/Flat-UI-Icons-24.woff") format("woff"), url("../fonts/Flat-UI-Icons-24.ttf") format("truetype"), url("../fonts/Flat-UI-Icons-24.svg#Flat-UI-Icons-24") format("svg");
-  font-weight: normal;
-  font-style: normal; }
-
-/* Use the following CSS code if you want to use data attributes for inserting your icons */
-[data-icon]:before {
-  font-family: "Flat-UI-Icons-24";
-  content: attr(data-icon);
-  speak: none;
-  font-weight: normal;
-  line-height: 1;
-  -webkit-font-smoothing: antialiased; }
-
-/* Use the following CSS code if you want to have a class per icon */
-/*Instead of a list of all class selectors,
- *you can use the generic selector below, but it's slower:
- *[class*="fui-"]:before { */
-.fui-video-24:before, .fui-time-24:before, .fui-settings-24:before, .fui-plus-24:before, .fui-new-24:before, .fui-menu-24:before, .fui-man-24:before, .fui-mail-24:before, .fui-lock-24:before, .fui-location-24:before, .fui-heart-24:before, .fui-eye-24:before, .fui-cross-24:before, .fui-cmd-24:before, .fui-checkround-24:before, .fui-checkmark-24:before, .fui-calendar-24:before, .fui-bubble-24:before, .fui-volume-24:before, .fui-camera-24:before {
-  font-family: "Flat-UI-Icons-24";
-  speak: none;
-  font-style: normal;
-  font-weight: normal;
-  line-height: 1;
-  -webkit-font-smoothing: antialiased; }
-
-.fui-video-24:before {
-  content: "\e000"; }
-
-.fui-time-24:before {
-  content: "\e001"; }
-
-.fui-settings-24:before {
-  content: "\e002"; }
-
-.fui-plus-24:before {
-  content: "\e003"; }
-
-.fui-new-24:before {
-  content: "\e005"; }
-
-.fui-menu-24:before {
-  content: "\e006"; }
-
-.fui-man-24:before {
-  content: "\e007"; }
-
-.fui-mail-24:before {
-  content: "\e008"; }
-
-.fui-lock-24:before {
-  content: "\e009"; }
-
-.fui-location-24:before {
-  content: "\e00a"; }
-
-.fui-heart-24:before {
-  content: "\e00b"; }
-
-.fui-eye-24:before {
-  content: "\e00c"; }
-
-.fui-cross-24:before {
-  content: "\e00d"; }
-
-.fui-cmd-24:before {
-  content: "\e00e"; }
-
-.fui-checkround-24:before {
-  content: "\e00f"; }
-
-.fui-checkmark-24:before {
-  content: "\e010"; }
-
-.fui-calendar-24:before {
-  content: "\e011"; }
-
-.fui-bubble-24:before {
-  content: "\e012"; }
-
-.fui-volume-24:before {
-  content: "\e013"; }
-
-.fui-camera-24:before {
-  content: "\e004"; }
+  font-variant: normal;
+  text-transform: none;
+  -webkit-font-smoothing: antialiased;
+}
+.fui-arrow-right:before {
+  content: "\e02c";
+}
+.fui-arrow-left:before {
+  content: "\e02d";
+}
+.fui-cmd:before {
+  content: "\e02f";
+}
+.fui-check-inverted:before {
+  content: "\e006";
+}
+.fui-heart:before {
+  content: "\e007";
+}
+.fui-location:before {
+  content: "\e008";
+}
+.fui-plus:before {
+  content: "\e009";
+}
+.fui-check:before {
+  content: "\e00a";
+}
+.fui-cross:before {
+  content: "\e00b";
+}
+.fui-list:before {
+  content: "\e00c";
+}
+.fui-new:before {
+  content: "\e00d";
+}
+.fui-video:before {
+  content: "\e00e";
+}
+.fui-photo:before {
+  content: "\e00f";
+}
+.fui-volume:before {
+  content: "\e010";
+}
+.fui-time:before {
+  content: "\e011";
+}
+.fui-eye:before {
+  content: "\e012";
+}
+.fui-chat:before {
+  content: "\e013";
+}
+.fui-search:before {
+  content: "\e01c";
+}
+.fui-user:before {
+  content: "\e01d";
+}
+.fui-mail:before {
+  content: "\e01e";
+}
+.fui-lock:before {
+  content: "\e01f";
+}
+.fui-gear:before {
+  content: "\e024";
+}
+.fui-radio-unchecked:before {
+  content: "\e02b";
+}
+.fui-radio-checked:before {
+  content: "\e032";
+}
+.fui-checkbox-unchecked:before {
+  content: "\e033";
+}
+.fui-checkbox-checked:before {
+  content: "\e034";
+}
+.fui-calendar-solid:before {
+  content: "\e022";
+}
+.fui-pause:before {
+  content: "\e03b";
+}
+.fui-play:before {
+  content: "\e03c";
+}
+.fui-check-inverted-2:before {
+  content: "\e000";
+}
 
 body {
   color: #34495e;
