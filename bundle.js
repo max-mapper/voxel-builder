@@ -341,6 +341,12 @@ module.exports = function() {
   
   function bindEventsAndPlugins() {
     
+    $(window).on('hashchange', function() {
+      if (updatingHash) return
+      localStorage.setItem('seenWelcome', true)
+      window.location.reload()
+    })
+    
     $('#browse img').live('click', function(ev) {
       var url = $(ev.target).attr('src')
       $('#browse button').click()
@@ -940,7 +946,15 @@ module.exports = function() {
         outHash = outHash + ":A" + i + '/' + animationFrames[i] 
       }  
     }
+
+    // hack to ignore programmatic hash changes
+    window.updatingHash = true
+    
     window.location.replace(outHash)
+    
+    setTimeout(function() {
+      window.updatingHash = false
+    }, 1)
     return voxels
   }
 
