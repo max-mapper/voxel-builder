@@ -38,18 +38,26 @@
           How it works
         </h3>
 
-        <p>This will work with any voxel data, but I built it to work with another app I made called <a href="http://voxelbuilder.com">Voxel Builder</a>. One of the users of DIY.org named burgzt took a <a href="http://voxelsprite.0fps.net/?src=/uploads/50562d83243216d714000002.png">3D Mario</a> designed by Mikola Lysenko and <a href="https://diy.org/burgzt/001em5">made a copy</a> in the builder app:</p>
+        <p>Use the <a href="/edit">Builder</a> to create and edit voxel (AKA cube) models.</p>
 
         <p><a href="http://github.com/maxogden/ndarray-stl/blob/master/img/mario-builder.png" target="_blank"><img src="http://github.com/maxogden/ndarray-stl/raw/master/img/mario-builder.png" alt="mario" style="max-width:100%;"></a></p>
 
-        <p>When you export your creation from Voxel Builder you get a PNG file with the voxel data magically encoded inside. That means you can upload the PNG photo of your creation into any app that knows how to extract it (such as the WebGl powered <a href="http://shama.github.io/voxel-critter/">voxel-critter</a>) and you can then fully view edit your 3D in that app.</p>
-
-        <p>For example, this image has encoded voxel data hidden inside:</p>
+        <p>When you are done, export it as a PNG file (from the menu in Builder), like this:</p>
 
         <p><a href="https://github-camo.global.ssl.fastly.net/e840a2fed3b267d9f2a79d378e644c9ba36bb0a0/687474703a2f2f692e696d6775722e636f6d2f6363426b4d56592e706e67" target="_blank"><img src="https://github-camo.global.ssl.fastly.net/e840a2fed3b267d9f2a79d378e644c9ba36bb0a0/687474703a2f2f692e696d6775722e636f6d2f6363426b4d56592e706e67" alt="mario-encoded" style="max-width:100%;"></a></p>
 
-        <p>In the <a href="http://maxogden.github.io/ndarray-stl/?png=http://i.imgur.com/ccBkMVY.png">ndarray-stl demo</a> I load the mario image (or any PNG url, you can specify one in the address bar), read the voxel data from the PNG and then generate an STL file from the voxels using ndarray-stl. You can also generate a smoothed voxel model. STL files can then be loaded into programs like MakerWare and 3D printed!</p>
+        <p>You can manufacture your critter using either a 2D printer or a 3D printer.</p>
+        
+        <h4>2D printer</h4>
+        
+        <p>Visit <a href="http://maxogden.github.io/voxel-2d-print/" target="_blank">this page</a> and drop your critter PNG onto it to generate pages. Print the pages so that each layer is a different page on a color printer. Then use scissors and glue to assemble each layer!</p>
+        
+        <p><img src="img/2d-detail.png"></p>
 
+        <h4>3D printer</h4>
+        
+        <p>Visit <a href="http://maxogden.github.io/ndarray-stl/" target="_blank">this page</a> and drop your critter PNG onto it to generate a 3D printable STL file.</p>
+        
         <p><a href="http://github.com/maxogden/ndarray-stl/blob/master/img/mario-makerware.png" target="_blank"><img src="http://github.com/maxogden/ndarray-stl/raw/master/img/mario-makerware.png" alt="mario-makerware" style="max-width:100%;"></a></p>
 
         <p>The above shows three STL files loaded into MakerWare: unsmoothed, smoothed with <a href="http://www.merl.com/papers/docs/TR99-24.pdf">surface nets</a> and smoothed with <a href="https://en.wikipedia.org/wiki/Marching_cubes">marching cubes</a>.</p>
@@ -58,11 +66,7 @@
 
         <p>Here are the 3 variations of Mario printed out by <a href="https://github.com/vladikoff">@vladikoff</a> at the Mozilla San Francisco office. You can view more photos from his print <a href="https://plus.google.com/106106671604413824025/posts/Nfw4aRmttEr">here</a>. Thanks, Vlad!</p>
 
-        <p>Mikola Lysenko, the original designer of the 3D mario, has a Shapeways store where you can order a <a href="http://www.shapeways.com/model/702952/8-bit-voxel-sprite.html?materialId=26">full color mario printed in sandstone</a> and have it shipped to you.</p>
-
-        <p><a href="http://0fps.wordpress.com/2012/09/18/turning-8-bit-sprites-into-printable-3d-models/"><img src="http://github.com/maxogden/ndarray-stl/raw/master/img/sprite-process.png" alt="process" style="max-width:100%;"></a></p>
-
-        <p>Mikola also wrote <a href="http://0fps.wordpress.com/2012/09/18/turning-8-bit-sprites-into-printable-3d-models/">a post</a> about the process of creating the 3D mario based on 2D sprites.</p>
+        <p>Mikola Lysenko, the designer of the Mario model and author of many of the algorithms in Voxel Builder, also wrote <a href="http://0fps.wordpress.com/2012/09/18/turning-8-bit-sprites-into-printable-3d-models/">a post</a> about the process of creating the 3D mario.</p>
 
         <p>At this point in time there are over <a href="http://derekr.github.io/voxel-painter-admin/">400 creations</a> that have been made with Voxel Builder. Any of them can be loaded into the ndarray-stl demo. Here are some good ones:</p>
 
