@@ -1,0 +1,12 @@
+section#content{margin-top:80px;}
+section#content article{font-size:18px;font-weight:200;line-height:180%;border-bottom:1px solid #eaeaea;max-width:940px;box-sizing:border-box;padding:0 60px 50px;margin-bottom:40px;}
+section#content article img{width:100%;height:auto}
+section#content article footer{float:none;clear:both;height:auto}
+section#content article h2{font-weight:100;font-size:37px;letter-spacing:-2px;margin-bottom:28px;}
+section#content article h2 a{color:#373435}
+section#content article p{margin:20px 0}
+section#content article .published{font-size:16px;color:#a7a7a7}
+#disqus_thread{box-sizing:border-box;padding:0 20px 60px;width:100%}
+iframe.video{max-width:480px;width:100%;position:relative;margin:20px auto;height:360px;display:block}
+@media screen and (max-width: 522px){section#content article{padding:0 30px 30px}
+}

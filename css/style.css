@@ -1,3 +1,31 @@
+@font-face {
+  font-family: 'Lato';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Lato Regular'), local('Lato-Regular'), url(../fonts/lato-regular.woff) format('woff');
+}
+
+@font-face {
+  font-family: 'Lato';
+  font-style: normal;
+  font-weight: 700;
+  src: local('Lato Bold'), local('Lato-Bold'), url(../fonts/lato-bold.woff) format('woff');
+}
+
+@font-face {
+  font-family: 'Lato';
+  font-style: normal;
+  font-weight: 900;
+  src: local('Lato Black'), local('Lato-Black'), url(../fonts/lato-black.woff) format('woff');
+}
+
+@font-face {
+  font-family: 'Lato';
+  font-style: italic;
+  font-weight: 400;
+  src: local('Lato Italic'), local('Lato-Italic'), url(../fonts/lato-italic.woff) format('woff');
+}
+
 body {
   margin: 0px;
   overflow: hidden;
@@ -9,10 +37,16 @@ body {
 .color { width: 18px; height: 16px; display: block; }
 .demo-text-box { margin-right: 24px; }
 .demo-panel-title { margin-bottom: 10px !important; padding-top: 10px !important; }
+.demo-panel-title a { color: black; text-decoration: none; }
 #instructions { width: 250px; position: absolute; top: 0px; right: 0px; }
 .instructions { background: white; border: 2px solid #1abc9c; border-radius: 6px; padding: 6px 1px 1px 6px; overflow-y: auto; text-align: left;}
 .actionsMenu { width: 224px; }
-.sliderContainer { width: 215px; margin-left: 7px; }
+.animationControls { width: 100%; position: absolute; bottom: 0px; display: none; }
+.animationControls .sliderContainer { margin: 0px 340px; }
+.animationControls .playback { font-size: 22px; margin: 0px 0 0 290px; position: relative; float: left; top: -7px; }
+.animationControls .addRemove { font-size: 22px; margin: 0px 270px 0 0; position: relative; float: right; top: -41px; }
+.animationControls .addRemove span { margin: 0px 0 0 6px; } 
+.animationControls .fui-cross { font-size: 23px; top: 1px; position: relative; }
 .pagination ul > li.previous > a { margin-right: 4px !important; }
 .pagination ul > li.next > a { margin-left: 4px !important; }
 .pagination { margin: 0 0 10px 0 !important; }
@@ -22,7 +56,7 @@ body {
 .share .tile-image.big-illustration { margin: 10px 0; }
 .share p { margin-bottom: 10px !important; }
 .voxel-share img { height: 200px; }
-.voxel-share textarea { display: none; }
+.voxel-share textarea { display: none; }  
 .dk_options_inner, .dk_touch .dk_options { max-height: 300px !important; }
 .color-container { margin: 5px 0 5px -20px; }
 .modal-body .control-group .login-field { width: 248px !important; }
