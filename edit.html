@@ -8,12 +8,12 @@
     <link href="flatui/css/flat-ui.css" rel="stylesheet">
     <link href="colorpicker/css/colorpicker.css" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
-    
+
   </head>
   <body>
     <div id="instructions">
       <h3 class="demo-panel-title"><a href="/">Voxel Critter Creator</a></h3>
-      
+
       <select class="actionsMenu" value="Actions" tabindex="1">
         <option value="noop" selected="selected">Actions</option>
         <option value="viewInstructions">View Instructions</option>
@@ -22,6 +22,7 @@
         <option value="browseRecent">Recently Made Critters</option>
         <option value="share">Publish + Share Critter</option>
         <option value="export">Export PNG</option>
+        <option value="exportAnimation">Export animation as Gif</option>
         <option value="reset">Reset</option>
         <option value="about">About</option>
       </select>
@@ -57,7 +58,7 @@
           </li>
         </ul>
       </div> <!-- /share -->
-      
+
       <div class="row color-container">
         <div class="span3">
             <div class="btn-group color-picker">
@@ -77,10 +78,10 @@
           <a id="shareButton" class="btn btn-primary btn-large btn-block">Upload critter</a>
         </div>
       </div>
-      
+
      <div id="output"></div>
     </div>
-    
+
     <div class="animationControls">
       <div class="playback">
         <span class="play-pause fui-play"></span>
@@ -94,7 +95,7 @@
         <span class="minus-button fui-cross"></span>
       </div>
     </div>
-    
+
     <div id="welcome" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
@@ -118,7 +119,7 @@
             <p><strong>drop</strong> an creature .png image to load it in</p>
           </div>
         </div>
-        
+
         <div class="span3 hello">
           <p><h4>Animation</h4></p>
           <p>Turn on Animation to optionally create a multi-frame voxel critter.</p>
@@ -130,7 +131,7 @@
         <button class="btn" data-dismiss="modal" aria-hidden="true">Okay!</button>
       </div>
     </div>
-    
+
     <div id="share" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
@@ -145,15 +146,15 @@
           <input type="text" class="login-field author" value="" placeholder="Author name (optional)"
           id="login-pass">
         </div>
-        
+
         <div class="share-form"></div>
-        
+
       </div>
       <div class="modal-footer">
         <button class="btn btn-cancel" data-dismiss="modal" aria-hidden="true">Close</button>
       </div>
     </div>
-    
+
     <div id="about" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
@@ -168,7 +169,7 @@
         <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
       </div>
     </div>
-    
+
     <div id="browse" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
@@ -182,16 +183,19 @@
         <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
       </div>
     </div>
-    
+
     <!-- <div class="hidden">
       <a class="twitter-timeline" href="https://twitter.com/search?q=%23voxelcritter" data-widget-id="315522378715238401">Tweets about "#voxelcritter"</a>
       <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
     </div> -->
-    
+
     <script type="text/javascript" src="js/flatui-deps.js"></script>
     <script type="text/javascript" src="colorpicker/js/bootstrap-colorpicker.js"></script>
+    <script type="text/javascript" src="js/GIFEncoder.js"></script>
+    <script type="text/javascript" src="js/LZWEncoder.js"></script>
+    <script type="text/javascript" src="js/NeuQuant.js"></script>
     <script type="text/javascript" src="bundle.js"></script>
-    
+
     <script>
       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
       (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),

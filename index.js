@@ -32,7 +32,7 @@ module.exports = function() {
   showWelcome()
   init()
   raf(window).on('data', render)
-  
+
   function showWelcome() {
     var seenWelcome = localStorage.getItem('seenWelcome')
     if (seenWelcome) return
@@ -43,11 +43,11 @@ module.exports = function() {
   exports.viewInstructions = function() {
     $('#welcome').modal()
   }
-  
+
   exports.about = function() {
     $('#about').modal()
   }
-  
+
   exports.share = function() {
     var fakeGame = {
       renderer: {
@@ -89,13 +89,13 @@ module.exports = function() {
       $('#share .modal-footer .btn-cancel').click()
     }
   }
-  
+
   // bunny
   exports.loadExample = function() {
     window.location.replace( '#A/bfhkSfdihfShaefShahfShahhYfYfYfSfSfSfYhYhYhahjSdechjYhYhYhadfQUhchfYhYhSfYdQYhYhaefQYhYhYhYhSjcchQYhYhYhYhSfSfWehSfUhShecheQYhYhYhYhachYhYhafhYhahfShXdfhShcihYaVhfYmfbihhQYhYhYhaddQShahfYhYhYhShYfYfYfafhQUhchfYhYhYhShechdUhUhcheUhUhcheUhUhcheUhUhcheUhUhWehUhUhcfeUhUhcfeUhUhcfeUhUhcfeUhUhehehUhUhcheUhUhcheUhUhcheUhUhWehUhUhcfeUhUhcfeUhUhcfeUhUhcfeUhUhWffUhWheQYhYhYhYhachQYiYhYhShYfYfYfYfShYhYhYhYhadeakiQSfSfSfUfShShShUfSfSfSfUfShShShUfSfSfSfcakQShShWfeQShShWeeQUhWfhUhShUfWjhQUfUfUfWfdQShShShWkhQUfUfUfchjQYhYhYhYhUfYfYfYeYhUfYhYhcifQYfYfYfYeQcffQYhYhYiYiYfcdhckjUfUfZfeYcciefhleiYhYcYhcfhYhcfhYhcifYhcfhYhcfhYhYcYh')
     buildFromHash()
   }
-  
+
   exports.browseTwitter = function() {
     $('#browse').modal()
     var content = $('#browse .demo-browser-content')
@@ -112,13 +112,13 @@ module.exports = function() {
       content.append('<img src="' + url + '"/>')
     })
   }
-  
+
   exports.browseRecent = function() {
     $('#browse').modal()
     var content = $('#browse .demo-browser-content')
     content.html('<p>Loading...</p>')
-    request({ 
-        url: 'http://maxcors.jit.su/http://max.ic.ht/critters/_all_docs?include_docs=true', 
+    request({
+        url: 'http://maxcors.jit.su/http://max.ic.ht/critters/_all_docs?include_docs=true',
         json: true
       }, function(err, resp, data) {
       if (err) {
@@ -133,7 +133,7 @@ module.exports = function() {
       })
     })
   }
-  
+
   exports.getImage = function(imgURL, cb) {
     var img = new Image()
     img.crossOrigin = ''
@@ -166,7 +166,7 @@ module.exports = function() {
       .filter(function(el) { return el.isVoxel })
       .map(function(mesh) { mesh.wireMesh.visible = bool })
   }
-  
+
   exports.toggleAnimation = function(bool) {
     animation = bool
     $('.animationControls').toggle()
@@ -198,7 +198,52 @@ module.exports = function() {
     if (animating) animationInterval = setInterval(changeFrame, 250)
     else clearInterval(animationInterval)
   }
-  
+
+  /**
+   * Export the animation as gif
+   * see https://github.com/antimatter15/jsgif
+   */
+  exports.exportAnimation = function() {
+    if (animationFrames.length === 0) return
+
+    var encoder = new GIFEncoder()
+    encoder.setRepeat(0)
+    encoder.setDelay(300)
+    encoder.start()
+
+    for (var i = 0; i < animationFrames.length; i++) {
+      changeFrame()
+      encoder.addFrame(getExportCanvas().getContext('2d'))
+      animate(nextFrame)
+    }
+
+    encoder.finish()
+    var binaryGif = encoder.stream().getData()
+    var dataUrl = 'data:image/gif;base64,'+encode64(binaryGif)
+    window.open(dataUrl, 'voxel-painter-window')
+  }
+
+  function encode64(input) {
+    var output = "", i = 0, l = input.length
+    var key = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
+    var chr1, chr2, chr3, enc1, enc2, enc3, enc4
+    while (i < l) {
+      chr1 = input.charCodeAt(i++)
+      chr2 = input.charCodeAt(i++)
+      chr3 = input.charCodeAt(i++)
+      enc1 = chr1 >> 2
+      enc2 = ((chr1 & 3) << 4) | (chr2 >> 4)
+      enc3 = ((chr2 & 15) << 2) | (chr3 >> 6)
+      enc4 = chr3 & 63
+      if (isNaN(chr2)) enc3 = enc4 = 64
+      else if (isNaN(chr3)) enc4 = 64
+      output = output + key.charAt(enc1) + key.charAt(enc2) + key.charAt(enc3) + key.charAt(enc4)
+    }
+
+    return output
+  }
+
+
   function addVoxel(x, y, z, c) {
     var cubeMaterial = new CubeMaterial( { vertexColors: THREE.VertexColors, transparent: true } )
     var col = colors[c] || colors[0]
@@ -225,7 +270,7 @@ module.exports = function() {
     value = parseInt(value).toString(16)
     return value.length < 2 ? '0' + value : value
   }
-  
+
   function rgb2hex(rgb) {
     return v2h( rgb[ 0 ] * 255 ) + v2h( rgb[ 1 ] * 255 ) + v2h( rgb[ 2 ] * 255 );
   }
@@ -335,15 +380,15 @@ module.exports = function() {
     color = idx
     brush.children[0].material.color.setRGB(colors[idx][0], colors[idx][1], colors[idx][2])
   }
-  
+
   function bindEventsAndPlugins() {
-    
+
     $(window).on('hashchange', function() {
       if (updatingHash) return
       localStorage.setItem('seenWelcome', true)
       window.location.reload()
     })
-    
+
     $('#browse img').live('click', function(ev) {
       var url = $(ev.target).attr('src')
       $('#browse button').click()
@@ -351,7 +396,7 @@ module.exports = function() {
         importImage(img)
       })
     })
-    
+
     $('#shareButton').click(function(e) {
       e.preventDefault()
       exports.share()
@@ -381,7 +426,7 @@ module.exports = function() {
         }, 0)
       }
     })
-    
+
     // Todo list
     $(".todo li").click(function() {
         $(this).toggleClass("todo-done");
@@ -397,7 +442,7 @@ module.exports = function() {
     playPauseEl = $('.play-pause')
     var addFrameButton = $('.plus-button')
     var removeFrameButton = $('.minus-button')
-    
+
     // Init jQuery UI slider
     sliderEl.slider({
       min: 1,
@@ -413,14 +458,14 @@ module.exports = function() {
         currentFrame = nextFrame
       }
     })
-    
+
     addFrameButton.click(addFrame)
     removeFrameButton.click(removeFrame)
-    
+
     playPauseEl.click(function(e) {
       exports.playPause()
     })
-    
+
     // JS input/textarea placeholder
     $("input, textarea").placeholder();
 
@@ -433,11 +478,11 @@ module.exports = function() {
     $("a[href='#']").click(function() {
         return false
     });
-    
+
   }
 
   function init() {
-    
+
     bindEventsAndPlugins()
     setupImageDropImport(document.body)
 
@@ -488,14 +533,14 @@ module.exports = function() {
     mouse2D = new THREE.Vector3( 0, 10000, 0.5 )
 
     // Brush
-    
+
     var brushMaterials = [
       new CubeMaterial( { vertexColors: THREE.VertexColors, opacity: 0.5, transparent: true } ),
       new THREE.MeshBasicMaterial( { color: 0x000000, wireframe: true } )
     ]
     brushMaterials[0].color.setRGB(colors[0][0], colors[0][1], colors[0][2])
     brush = THREE.SceneUtils.createMultiMaterialObject( cube, brushMaterials )
-    
+
     brush.isBrush = true
     brush.position.y = 2000
     brush.overdraw = false
@@ -505,18 +550,18 @@ module.exports = function() {
 
     var ambientLight = new THREE.AmbientLight( 0x606060 )
     scene.add( ambientLight )
-    
+
     var directionalLight = new THREE.DirectionalLight( 0xffffff );
 		directionalLight.position.set( 1, 0.75, 0.5 ).normalize();
 		scene.add( directionalLight );
-    				
+
     // var directionalLight = new THREE.DirectionalLight( 0xffffff )
     // directionalLight.position.x = Math.random() - 0.5
     // directionalLight.position.y = Math.random() - 0.5
     // directionalLight.position.z = Math.random() - 0.5
     // directionalLight.position.normalize()
     // scene.add( directionalLight )
-    // 
+    //
     // var directionalLight = new THREE.DirectionalLight( 0x808080 )
     // directionalLight.position.x = Math.random() - 0.5
     // directionalLight.position.y = Math.random() - 0.5
@@ -548,7 +593,7 @@ module.exports = function() {
     window.addEventListener( 'resize', onWindowResize, false )
 
     if ( window.location.hash ) buildFromHash()
-    
+
     updateHash()
 
   }
@@ -581,7 +626,7 @@ module.exports = function() {
     }
 
     var intersect = getIntersecting()
-    
+
     if ( intersect ) {
       var normal = intersect.face.normal.clone()
       normal.applyMatrix4( intersect.object.matrixRotationWorld )
@@ -673,7 +718,7 @@ module.exports = function() {
           scene.remove( intersect.object )
         }
       } else {
-        if (brush.position.y != 2000) addVoxel(brush.position.x, brush.position.y, brush.position.z, color)  
+        if (brush.position.y != 2000) addVoxel(brush.position.x, brush.position.y, brush.position.z, color)
       }
     }
 
@@ -732,7 +777,7 @@ module.exports = function() {
     updateHash()
     sliderEl.slider( "option", "max", animationFrames.length )
   }
-  
+
   function removeFrame() {
     animationFrames.splice(currentFrame, 1)
     if (currentFrame === animationFrames.length) currentFrame--
@@ -756,7 +801,7 @@ module.exports = function() {
       addVoxel(v[0], v[1], v[2], v[3])
     }
   }
-  
+
   function animate(frame) {
     diff = getFrameDiff(currentFrame, frame)
     removed = diff[0]
@@ -777,13 +822,13 @@ module.exports = function() {
         }
       }
     }
-    
+
     for(var i = 0; i < added.length; i++){
       var v = added[i].split(',')
       addVoxel(v[0], v[1], v[2], v[3])
     }
   }
-  
+
   Array.prototype.diff = function(a) {
     return this.filter(function(i) {return !(a.indexOf(i) > -1);});
   };
@@ -795,7 +840,7 @@ module.exports = function() {
     added = pos2.diff(pos1)
     return [removed, added]
   }
-  
+
   function getPositionsFromData(data) {
     var current = { x: 0, y: 0, z: 0, c: 0 }
     var voxels = []
@@ -810,7 +855,7 @@ module.exports = function() {
     }
     return voxels
   }
-  
+
 
   function buildFromHash(hashMask) {
 
@@ -826,7 +871,7 @@ module.exports = function() {
         animationFrames.push(chunk[1])
       }
     }
-    
+
     sliderEl.slider( "option", "max", animationFrames.length)
 
     if ( (!hashMask || hashMask == 'C') && chunks['C'] )
@@ -840,9 +885,9 @@ module.exports = function() {
       }
     }
     var frameMask = 'A'
-    
+
     if (currentFrame != 0) frameMask = 'A' + currentFrame
-    
+
     if ( (!hashMask || hashMask == frameMask) && chunks[frameMask] ) {
       // decode geo
       var current = { x: 0, y: 0, z: 0, c: 0 }
@@ -861,7 +906,7 @@ module.exports = function() {
         }
       }
     }
-  
+
     updateHash()
 
   }
@@ -940,15 +985,15 @@ module.exports = function() {
         outHash = outHash + ":A/" + animationFrames[i]
       }
       else {
-        outHash = outHash + ":A" + i + '/' + animationFrames[i] 
-      }  
+        outHash = outHash + ":A" + i + '/' + animationFrames[i]
+      }
     }
 
     // hack to ignore programmatic hash changes
     window.updatingHash = true
-    
+
     window.location.replace(outHash)
-    
+
     setTimeout(function() {
       window.updatingHash = false
     }, 1)
@@ -1000,10 +1045,10 @@ module.exports = function() {
     ctx.putImageData(imageData, 0, 0)
 
     onWindowResize()
-    
+
     return canvas
   }
-  
+
   function exportImage(width, height) {
     var canvas = getExportCanvas(width, height)
     var image = new Image
@@ -1102,5 +1147,5 @@ module.exports = function() {
     raycaster = projector.pickingRay( mouse2D.clone(), camera )
     renderer.render( scene, camera )
   }
-  
+
 }
