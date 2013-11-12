@@ -545,6 +545,9 @@ module.exports = function() {
     window.addEventListener('mousewheel', mousewheel, false);
 
     function mousewheel( event ) {
+      // prevent zoom if a modal is open
+      if ($('.modal').hasClass('in'))
+        return
       zoom(event.wheelDeltaY || event.detail)
     }
 
