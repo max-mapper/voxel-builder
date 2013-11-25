@@ -66,7 +66,7 @@ module.exports = function() {
       afterUpload: function(link) {
         request({
           method: "POST",
-          url: "http://maxcors.jit.su/http://max.ic.ht/critters",
+          url: "http://cors.maxogden.com/http://max.ic.ht/critters",
           json: true,
           body: {
             link: link,
@@ -117,8 +117,8 @@ module.exports = function() {
     $('#browse').modal()
     var content = $('#browse .demo-browser-content')
     content.html('<p>Loading...</p>')
-    request({
-        url: 'http://maxcors.jit.su/http://max.ic.ht/critters/_all_docs?include_docs=true',
+    request({ 
+        url: 'http://cors.maxogden.com/http://max.ic.ht/critters/_all_docs?include_docs=true', 
         json: true
       }, function(err, resp, data) {
       if (err) {
