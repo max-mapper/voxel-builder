@@ -117,8 +117,8 @@ module.exports = function() {
     $('#browse').modal()
     var content = $('#browse .demo-browser-content')
     content.html('<p>Loading...</p>')
-    request({ 
-        url: 'http://cors.maxogden.com/http://max.ic.ht/critters/_all_docs?include_docs=true', 
+    request({
+        url: 'http://cors.maxogden.com/http://max.ic.ht/critters/_all_docs?include_docs=true',
         json: true
       }, function(err, resp, data) {
       if (err) {
@@ -427,14 +427,14 @@ module.exports = function() {
     // JS input/textarea placeholder
     $("input, textarea").placeholder();
 
-    $(".btn-group a").click(function() {
+    $(".btn-group").on("click", "a", function() {
         $(this).siblings().removeClass("active");
         $(this).addClass("active");
     });
 
     // Disable link click not scroll top
-    $("a[href='#']").click(function() {
-        return false
+    $("a[href='#']").click(function(e) {
+        e.preventDefault()
     });
 
   }
