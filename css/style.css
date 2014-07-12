@@ -61,6 +61,7 @@ body {
 .color-container { margin: 5px 0 5px -20px; }
 .modal-body .control-group .login-field { width: 248px !important; }
 .modal-body .control-group { display: inline-block; }
+#paperstackExport canvas {width: 700px;}
 
 #browse .demo-browser-content { background-color: transparent; }
 #browse .demo-browser-content img { border: 1px solid #7F8B97; }
