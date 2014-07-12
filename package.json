@@ -2,15 +2,17 @@
   "name": "voxel-painter",
   "version": "0.0.1",
   "dependencies": {
+    "browser-request": "git+https://github.com/iriscouch/browser-request.git",
+    "lsb": "0.1.0",
+    "ndarray": "^1.0.15",
+    "ndarray-fill": "^1.0.1",
+    "orthogami": "^1.0.1",
+    "raf": "0.0.1",
     "three": "0.55.0",
-    "voxel-share": "0.3.0",
-    "browser-request": "git+https://github.com/iriscouch/browser-request.git"
+    "voxel-critter": "^1.0.0",
+    "voxel-share": "0.3.0"
   },
   "devDependencies": {
-    "browservefy": "0.0.9",
-    "three": "0.55.0",
-    "raf": "0.0.1",
-    "lsb": "0.1.0",
     "beefy": "0.0.11"
   },
   "scripts": {

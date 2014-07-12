@@ -3,6 +3,10 @@ var raf = require('raf')
 var lsb = require('lsb')
 var voxelShare = require('voxel-share')
 var request = require('browser-request')
+var Convert = require('voxel-critter/lib/convert.js')
+var ndarray = require('ndarray')
+var ndarrayFill = require('ndarray-fill')
+var orthogamiExport = require('./js/orthogami.js')
 
 module.exports = function() {
   var container
@@ -89,10 +93,46 @@ module.exports = function() {
       $('#share .modal-footer .btn-cancel').click()
     }
   }
+  
+  exports.orthogamiExport = function() {
+    var hash = window.location.hash.substr(1)
+    var convert = new Convert()
+    var data = convert.toVoxels(hash)
+    var l = data.bounds[0]
+    var h = data.bounds[1]
+    var d = [ h[0]-l[0], h[1]-l[1], h[2]-l[2]]
+    var len = d[0] * d[1] * d[2]
+    var voxels = ndarray(new Int32Array(len), [d[0], d[1], d[2]])
+    
+    var colors = [undefined]
+    data.colors.map(function(c) {
+      colors.push('#' + rgb2hex(c))
+    })
+    
+    function generateVoxels(x, y, z) {
+      var offset = [x + l[0], y + l[1], z + l[2]]
+      var val = data.voxels[offset.join('|')]
+      return data.colors[val] ? val + 1: 0
+    }
+    
+    ndarrayFill(voxels, generateVoxels)
+    
+    try {
+      var svgs = orthogamiExport(voxels, colors)
+      $('#orthogamiExport').modal()
+      var content = $('#orthogamiExport .orthogami')
+      content.html('')
+      svgs.map(function(svg) {
+        var svgUri = encodeSVGDatauri(svg)
+        content.append($('<a href="' + svgUri + '">' + svg + '</a>'))
+      })      
+    } catch(e) {
+      alert('Unable to export current design, sorry! Try making it a bit simpler')
+    }
+  }
 
-  // bunny
   exports.loadExample = function() {
-    window.location.replace( '#A/bfhkSfdihfShaefShahfShahhYfYfYfSfSfSfYhYhYhahjSdechjYhYhYhadfQUhchfYhYhSfYdQYhYhaefQYhYhYhYhSjcchQYhYhYhYhSfSfWehSfUhShecheQYhYhYhYhachYhYhafhYhahfShXdfhShcihYaVhfYmfbihhQYhYhYhaddQShahfYhYhYhShYfYfYfafhQUhchfYhYhYhShechdUhUhcheUhUhcheUhUhcheUhUhcheUhUhWehUhUhcfeUhUhcfeUhUhcfeUhUhcfeUhUhehehUhUhcheUhUhcheUhUhcheUhUhWehUhUhcfeUhUhcfeUhUhcfeUhUhcfeUhUhWffUhWheQYhYhYhYhachQYiYhYhShYfYfYfYfShYhYhYhYhadeakiQSfSfSfUfShShShUfSfSfSfUfShShShUfSfSfSfcakQShShWfeQShShWeeQUhWfhUhShUfWjhQUfUfUfWfdQShShShWkhQUfUfUfchjQYhYhYhYhUfYfYfYeYhUfYhYhcifQYfYfYfYeQcffQYhYhYiYiYfcdhckjUfUfZfeYcciefhleiYhYcYhcfhYhcfhYhcifYhcfhYhcfhYhYcYh')
+    window.location.replace( '#C/2ecc713498db34495ee67e22ecf0f11d2999000000:A/bdhiSeVhhSiSfVheUhSfSiXhfjfhffcSi')
     buildFromHash()
   }
 
@@ -198,7 +238,23 @@ module.exports = function() {
     if (animating) animationInterval = setInterval(changeFrame, 250)
     else clearInterval(animationInterval)
   }
-
+  
+  function encodeSVGDatauri(str, type) {
+    var prefix = 'data:image/svg+xml'
+    // base64
+    if (!type || type === 'base64') {
+      prefix += ';base64,'
+      str = prefix + new Buffer(str).toString('base64')
+    // URI encoded
+    } else if (type === 'enc') {
+      str = prefix + ',' + encodeURIComponent(str)
+    // unencoded
+    } else if (type === 'unenc') {
+      str = prefix + ',' + str
+    }
+    return str
+  }
+  
   function addVoxel(x, y, z, c) {
     var cubeMaterial = new CubeMaterial( { vertexColors: THREE.VertexColors, transparent: true } )
     var col = colors[c] || colors[0]
@@ -932,20 +988,19 @@ module.exports = function() {
       }
     }
 
-    data = encode( data )
+    data = encode(data)
     animationFrames[currentFrame] = data
 
     var cData = '';
-    for(var i = 0; i < colors.length; i++){
-      cData+=rgb2hex(colors[i]);
+    for (var i = 0; i < colors.length; i++){
+      cData += rgb2hex(colors[i]);
     }
 
-    var outHash = "#"+(cData?("C/"+cData):'')
-    for(var i = 0; i < animationFrames.length; i++){
-      if (i == 0){
+    var outHash = "#" + (cData ? ("C/" + cData) : '')
+    for (var i = 0; i < animationFrames.length; i++) {
+      if (i === 0) {
         outHash = outHash + ":A/" + animationFrames[i]
-      }
-      else {
+      } else {
         outHash = outHash + ":A" + i + '/' + animationFrames[i]
       }
     }
@@ -958,6 +1013,7 @@ module.exports = function() {
     setTimeout(function() {
       window.updatingHash = false
     }, 1)
+    
     return voxels
   }
 
@@ -1067,7 +1123,7 @@ module.exports = function() {
   }
 
   function getDimensions(voxels) {
-    var low = [0, 0, 0], high = [0, 0, 0]
+    var low = [0,0,0], high = [0,0,0]
     voxels.map(function(voxel) {
       if (voxel.x < low[0]) low[0] = voxel.x
       if (voxel.x > high[0]) high[0] = voxel.x
@@ -1076,31 +1132,25 @@ module.exports = function() {
       if (voxel.z < low[2]) low[2] = voxel.z
       if (voxel.z > high[2]) high[2] = voxel.z
     })
-    return [ high[0]-low[0], high[1]-low[1], high[2]-low[2] ]
+    return [ (high[0]-low[0]) || 1, (high[1]-low[1]) || 1, (high[2]-low[2]) || 1 ]
   }
 
   // https://gist.github.com/665235
 
   function decode( string ) {
-
     var output = []
     string.split('').forEach( function ( v ) { output.push( "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".indexOf( v ) ) } )
     return output
-
   }
 
   function encode( array ) {
-
     var output = ""
     array.forEach( function ( v ) { output += "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".charAt( v ) } )
     return output
-
   }
 
   function save() {
-
     window.open( renderer.domElement.toDataURL('image/png'), 'mywindow' )
-
   }
 
   function render() {
