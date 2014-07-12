@@ -6,9 +6,11 @@
     "lsb": "0.1.0",
     "ndarray": "^1.0.15",
     "ndarray-fill": "^1.0.1",
+    "ndarray-stl": "^1.0.1",
     "orthogami": "^1.0.1",
     "raf": "0.0.1",
     "three": "0.55.0",
+    "voxel-2d-print": "^1.0.0",
     "voxel-critter": "^1.0.0",
     "voxel-share": "0.3.0"
   },

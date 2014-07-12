@@ -4,6 +4,7 @@ var lsb = require('lsb')
 var voxelShare = require('voxel-share')
 var request = require('browser-request')
 var Convert = require('voxel-critter/lib/convert.js')
+var voxel2dprinter = require('voxel-2d-print')
 var ndarray = require('ndarray')
 var ndarrayFill = require('ndarray-fill')
 var orthogamiExport = require('./js/orthogami.js')
@@ -95,30 +96,9 @@ module.exports = function() {
   }
   
   exports.orthogamiExport = function() {
-    var hash = window.location.hash.substr(1)
-    var convert = new Convert()
-    var data = convert.toVoxels(hash)
-    var l = data.bounds[0]
-    var h = data.bounds[1]
-    var d = [ h[0]-l[0], h[1]-l[1], h[2]-l[2]]
-    var len = d[0] * d[1] * d[2]
-    var voxels = ndarray(new Int32Array(len), [d[0], d[1], d[2]])
-    
-    var colors = [undefined]
-    data.colors.map(function(c) {
-      colors.push('#' + rgb2hex(c))
-    })
-    
-    function generateVoxels(x, y, z) {
-      var offset = [x + l[0], y + l[1], z + l[2]]
-      var val = data.voxels[offset.join('|')]
-      return data.colors[val] ? val + 1: 0
-    }
-    
-    ndarrayFill(voxels, generateVoxels)
-    
+    var data = getVoxels()
     try {
-      var svgs = orthogamiExport(voxels, colors)
+      var svgs = orthogamiExport(data.voxels, data.colors)
       $('#orthogamiExport').modal()
       var content = $('#orthogamiExport .orthogami')
       content.html('')
@@ -129,6 +109,23 @@ module.exports = function() {
     } catch(e) {
       alert('Unable to export current design, sorry! Try making it a bit simpler')
     }
+  }
+  
+  exports.paperstackExport = function() {
+    var data = getVoxels()
+    console.log(data)
+    var stack = voxel2dprinter(data.voxels, data.colors, 80)
+    
+    $('#paperstackExport').modal()
+    var content = $('#paperstackExport .canvases')
+    content.html('')
+    console.log(stack)
+    stack.canvases.map(function(canv) {
+      var pngUri = canv.toDataURL('image/png')
+      var link = $('<a href="' + pngUri + '"></a>')
+      link.append(canv)
+      content.append(link)
+    })
   }
 
   exports.loadExample = function() {
@@ -237,6 +234,31 @@ module.exports = function() {
     playPauseEl.toggleClass('fui-play', !animating).toggleClass('fui-pause', animating)
     if (animating) animationInterval = setInterval(changeFrame, 250)
     else clearInterval(animationInterval)
+  }
+  
+  function getVoxels() {
+    var hash = window.location.hash.substr(1)
+    var convert = new Convert()
+    var data = convert.toVoxels(hash)
+    var l = data.bounds[0]
+    var h = data.bounds[1]
+    var d = [ h[0]-l[0] + 1, h[1]-l[1] + 1, h[2]-l[2] + 1]
+    var len = d[0] * d[1] * d[2]
+    var voxels = ndarray(new Int32Array(len), [d[0], d[1], d[2]])
+    
+    var colors = [undefined]
+    data.colors.map(function(c) {
+      colors.push('#' + rgb2hex(c))
+    })
+    
+    function generateVoxels(x, y, z) {
+      var offset = [x + l[0], y + l[1], z + l[2]]
+      var val = data.voxels[offset.join('|')]
+      return data.colors[val] ? val + 1: 0
+    }
+    
+    ndarrayFill(voxels, generateVoxels)
+    return {voxels: voxels, colors: colors}
   }
   
   function encodeSVGDatauri(str, type) {
