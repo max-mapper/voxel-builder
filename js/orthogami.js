@@ -4,12 +4,11 @@ module.exports = function(voxels, colors) {
     
   //Set up options (can skip this if you like)
   var options = {
-    bounds: [300, 300],   //Page size
-    scale: 50,            //Size of each voxel face
-    colorMap: colors, //Colors (can be a function)
-    convexColor: 'magenta',   //Color for crease lines
-    concaveColor: 'turquoise',
-    lineWidth: 1   //Width for lines
+    units: 'mm',            //Units
+    bounds: [210, 297],     //Page size
+    scale: 10,              //Size of voxel
+    lineWidth: 0.1,          //Size of dashed line
+    colorMap: colors
   }
 
   //Then run orthogami
