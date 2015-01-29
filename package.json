@@ -15,7 +15,8 @@
     "voxel-share": "0.3.0"
   },
   "devDependencies": {
-    "beefy": "0.0.11"
+    "beefy": "0.0.11",
+    "browserify": "^5.9.1"
   },
   "scripts": {
     "start": "beefy demo.js:bundle.js 8080"
